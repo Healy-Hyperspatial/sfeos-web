@@ -1,1 +1,2 @@
 REACT_APP_MAPTILER_KEY=your_maptiler_key_here
+REACT_APP_STAC_API_URL=http://localhost:8080

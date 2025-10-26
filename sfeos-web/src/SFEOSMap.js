@@ -5,6 +5,7 @@ import { Map as MapLibreMap } from 'react-map-gl/maplibre';
 import { Container, Row, Col } from 'react-bootstrap';
 import LogoOverlay from './components/LogoOverlay';
 import MapStyleSelector from './components/MapStyleSelector';
+import StacClient from './components/StacClient';
 import './SFEOSMap.css';
 
 function SFEOSMap() {
@@ -32,6 +33,7 @@ function SFEOSMap() {
         // Set the map style from state
         mapStyle={mapStyle}
       />
+      <StacClient />
       <div className="map-controls">
         <Container fluid>
           <Row className="justify-content-end">

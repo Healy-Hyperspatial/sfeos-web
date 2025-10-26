@@ -1,0 +1,92 @@
+.stac-client {
+  position: absolute;
+  top: 130px;
+  left: 20px;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  padding: 15px;
+  width: 300px;
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+}
+
+.stac-header {
+  margin: 0 0 15px 0;
+  border-bottom: 2px solid #007bff;
+  padding-bottom: 10px;
+}
+
+.stac-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #333;
+  font-weight: 600;
+}
+
+.stac-status {
+  padding: 10px;
+  background-color: #e7f3ff;
+  color: #004085;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.stac-error {
+  padding: 10px;
+  background-color: #f8d7da;
+  color: #721c24;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  margin-bottom: 10px;
+}
+
+.stac-selector {
+  margin-bottom: 15px;
+}
+
+.stac-select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  background-color: white;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.stac-select:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+}
+
+.stac-details {
+  background-color: #f8f9fa;
+  padding: 10px;
+  border-radius: 4px;
+  border-left: 3px solid #007bff;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.stac-details h4 {
+  margin: 0 0 8px 0;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+.stac-details p {
+  margin: 0;
+  font-size: 0.7rem;
+  color: #666;
+  line-height: 1.3;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
