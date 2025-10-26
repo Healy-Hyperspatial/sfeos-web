@@ -1,7 +1,7 @@
 .stac-expand-btn {
   background: none;
   border: none;
-  color: #007bff;
+  color: #001429;
   font-size: 0.8rem;
   cursor: pointer;
   padding: 0;
@@ -29,14 +29,13 @@
 
 .stac-details-expanded {
   position: absolute;
-  top: 20px;
-  left: 320px;
+  top: 145px;
+  left: 0px;
   z-index: 1001;
-  background-color: rgba(255, 255, 255, 0.75);
+  background-color: rgba(255, 255, 255, 0.85);
   padding: 15px;
   border-radius: 8px;
-  border-left: 3px solid #007bff;
-  width: 300px;
+  width: 280px;
   box-sizing: border-box;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
   max-height: 300px;
@@ -45,13 +44,13 @@
 
 .stac-details-expanded h4 {
   margin: 0 0 10px 0;
-  font-size: 0.95rem;
+  font-size: 0.8rem;
   color: #333;
 }
 
 .stac-details-expanded p {
-  margin: 0 0 10px 0;
-  font-size: 0.75rem;
+  margin: 0 0 1px 0;
+  font-size: 0.6rem;
   color: #666;
   line-height: 1.4;
   word-wrap: break-word;
@@ -60,12 +59,12 @@
 
 .stac-zoom-btn {
   width: 100%;
-  padding: 6px 10px;
-  background-color: #007bff;
+  padding: 6px 0px;
+  background-color: #002145;
   color: white;
   border: none;
   border-radius: 4px;
-  font-size: 0.75rem;
+  font-size: 0.6rem;
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s;

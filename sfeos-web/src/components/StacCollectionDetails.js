@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import './StacCollectionDetails.css';
 
 function StacCollectionDetails({ collection, onZoomToBbox }) {
-  const [expandDetails, setExpandDetails] = useState(false);
-  const [expandSpatial, setExpandSpatial] = useState(false);
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  const [isBoundingBoxVisible, setIsBoundingBoxVisible] = useState(false);
 
   if (!collection) return null;
 
@@ -16,48 +16,64 @@ function StacCollectionDetails({ collection, onZoomToBbox }) {
     }
   };
 
+  const handleDescriptionClick = () => {
+    setIsDescriptionExpanded(!isDescriptionExpanded);
+    if (isBoundingBoxVisible) {
+      setIsBoundingBoxVisible(false);
+    }
+  };
+
+  const handleBoundingBoxClick = () => {
+    setIsBoundingBoxVisible(!isBoundingBoxVisible);
+    if (isDescriptionExpanded) {
+      setIsDescriptionExpanded(false);
+    }
+  };
+
   return (
     <>
-      <button 
-        className="stac-expand-btn"
-        onClick={() => setExpandDetails(!expandDetails)}
-        title={expandDetails ? "Hide details" : "Show details"}
-      >
-        <span className="expand-arrow">{expandDetails ? '◀' : '▶'}</span>
-        <span className="expand-label">Description</span>
-      </button>
-      {expandDetails && (
-        <div className="stac-details-expanded">
-          <h4>{collection.title || collection.id}</h4>
-          <p>{collection.description}</p>
-        </div>
-      )}
+      <div className="description" onClick={handleDescriptionClick}>
+        <button 
+          className="stac-expand-btn"
+          title={isDescriptionExpanded ? "Hide details" : "Show details"}
+        >
+          <span className="expand-arrow">{isDescriptionExpanded ? '◀' : '▶'}</span>
+          <span className="expand-label">Description</span>
+        </button>
+        {isDescriptionExpanded && (
+          <div className="stac-details-expanded">
+            <h4>{collection.title || collection.id}</h4>
+            <p>{collection.description}</p>
+          </div>
+        )}
+      </div>
 
-      <button 
-        className="stac-expand-btn"
-        onClick={() => setExpandSpatial(!expandSpatial)}
-        title={expandSpatial ? "Hide spatial extent" : "Show spatial extent"}
-      >
-        <span className="expand-arrow">{expandSpatial ? '◀' : '▶'}</span>
-        <span className="expand-label">Spatial Extent</span>
-      </button>
-      {expandSpatial && hasValidBbox && (
-        <div className="stac-details-expanded">
-          <h4>Bounding Box</h4>
-          <p>
-            <strong>West:</strong> {bbox[0].toFixed(4)}°<br />
-            <strong>South:</strong> {bbox[1].toFixed(4)}°<br />
-            <strong>East:</strong> {bbox[2].toFixed(4)}°<br />
-            <strong>North:</strong> {bbox[3].toFixed(4)}°
-          </p>
-          <button 
-            className="stac-zoom-btn"
-            onClick={handleZoomToBbox}
-          >
-            Zoom to Area
-          </button>
-        </div>
-      )}
+      <div className="bounding-box" onClick={handleBoundingBoxClick}>
+        <button 
+          className="stac-expand-btn"
+          title={isBoundingBoxVisible ? "Hide spatial extent" : "Show spatial extent"}
+        >
+          <span className="expand-arrow">{isBoundingBoxVisible ? '◀' : '▶'}</span>
+          <span className="expand-label">Spatial Extent</span>
+        </button>
+        {isBoundingBoxVisible && hasValidBbox && (
+          <div className="stac-details-expanded">
+            <h4>Bounding Box</h4>
+            <p>
+              <strong>W:</strong> {bbox[0].toFixed(4)}°
+              <strong> S:</strong> {bbox[1].toFixed(4)}°
+              <strong> E:</strong> {bbox[2].toFixed(4)}°
+              <strong> N:</strong> {bbox[3].toFixed(4)}°
+            </p>
+            <button 
+              className="stac-zoom-btn"
+              onClick={handleZoomToBbox}
+            >
+              Zoom to Area
+            </button>
+          </div>
+        )}
+      </div>
     </>
   );
 }
