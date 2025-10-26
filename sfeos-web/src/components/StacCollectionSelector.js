@@ -8,7 +8,8 @@ function StacCollectionSelector({
   error, 
   selectedCollection,
   onCollectionChange,
-  onZoomToBbox
+  onZoomToBbox,
+  onShowItemsOnMap
 }) {
   const handleChange = (e) => {
     const collectionId = e.target.value;
@@ -49,6 +50,7 @@ function StacCollectionSelector({
         <StacCollectionDetails 
           collection={selectedCollection}
           onZoomToBbox={onZoomToBbox}
+          onShowItemsOnMap={onShowItemsOnMap}
         />
       )}
     </div>
