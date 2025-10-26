@@ -59,7 +59,8 @@
 
 .stac-zoom-btn {
   width: 100%;
-  padding: 6px 0px;
+  padding: 6px 6px;
+  margin-top: 10px;
   background-color: #002145;
   color: white;
   border: none;
@@ -71,5 +72,5 @@
 }
 
 .stac-zoom-btn:hover {
-  background-color: #0056b3;
+  background-color: #4bcfa8;
 }

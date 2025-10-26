@@ -21,7 +21,7 @@
 
 .stac-header h3 {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   color: #333;
   font-weight: 600;
   text-align: left;
@@ -54,7 +54,7 @@
   padding: 8px 10px;
   border: 1px solid #ddd;
   border-radius: 4px;
-  font-size: 0.9rem;
+  font-size: 0.7rem;
   background-color: white;
   cursor: pointer;
   transition: border-color 0.2s;
