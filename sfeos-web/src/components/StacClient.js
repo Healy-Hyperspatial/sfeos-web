@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import './StacClient.css';
+import StacCollectionSelector from './StacCollectionSelector';
+import StacCollectionDetails from './StacCollectionDetails';
 
 const STAC_API_URL = process.env.REACT_APP_STAC_API_URL || 'http://localhost:8000';
 
@@ -39,46 +40,18 @@ function StacClient() {
     fetchCollections();
   }, []);
 
-  const handleCollectionChange = (e) => {
-    const collectionId = e.target.value;
-    const collection = collections.find(c => c.id === collectionId);
+  const handleCollectionChange = (collection) => {
     setSelectedCollection(collection);
   };
 
   return (
-    <div className="stac-client">
-      <div className="stac-header">
-        <h3>STAC Collections</h3>
-      </div>
-
-      {loading && <div className="stac-status">Loading collections...</div>}
-      
-      {error && <div className="stac-error">{error}</div>}
-      
-      {!loading && collections.length > 0 && (
-        <div className="stac-selector">
-          <select 
-            onChange={handleCollectionChange}
-            defaultValue=""
-            className="stac-select"
-          >
-            <option value="">Select a collection...</option>
-            {collections.map(collection => (
-              <option key={collection.id} value={collection.id}>
-                {collection.id}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
-
-      {selectedCollection && (
-        <div className="stac-details">
-          <h4>{selectedCollection.title || selectedCollection.id}</h4>
-          <p>{selectedCollection.description}</p>
-        </div>
-      )}
-    </div>
+    <StacCollectionSelector 
+      collections={collections}
+      loading={loading}
+      error={error}
+      selectedCollection={selectedCollection}
+      onCollectionChange={handleCollectionChange}
+    />
   );
 }
 
