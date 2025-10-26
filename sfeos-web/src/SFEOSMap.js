@@ -1,11 +1,21 @@
 // src/SFEOSMap.js
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Map as MapLibreMap } from 'react-map-gl/maplibre';
+import { Container, Row, Col } from 'react-bootstrap';
 import LogoOverlay from './components/LogoOverlay';
+import MapStyleSelector from './components/MapStyleSelector';
 import './SFEOSMap.css';
 
 function SFEOSMap() {
+  const [mapStyle, setMapStyle] = useState(
+    `https://api.maptiler.com/maps/streets/style.json?key=${process.env.REACT_APP_MAPTILER_KEY}`
+  );
+
+  const handleStyleChange = (newStyle) => {
+    setMapStyle(newStyle);
+  };
+
   return (
     <div className="map-container">
       <MapLibreMap
@@ -19,9 +29,21 @@ function SFEOSMap() {
         // This is the full-screen styling
         style={{ width: '100%', height: '100%' }}
         
-        // Add a basemap style
-        mapStyle={`https://api.maptiler.com/maps/streets/style.json?key=${process.env.REACT_APP_MAPTILER_KEY}`}
+        // Set the map style from state
+        mapStyle={mapStyle}
       />
+      <div className="map-controls">
+        <Container fluid>
+          <Row className="justify-content-end">
+            <Col xs="auto">
+              <MapStyleSelector 
+                value={mapStyle} 
+                onChange={handleStyleChange} 
+              />
+            </Col>
+          </Row>
+        </Container>
+      </div>
       <LogoOverlay />
     </div>
   );
