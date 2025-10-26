@@ -1,0 +1,20 @@
+.logo-overlay {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* New styles for the box */
+  background-color: rgba(255, 255, 255, 0.5); /* Semi-transparent white */
+  padding: 10px 10px 10px 10px; /* Space around the logo */
+  border-radius: 12px; /* Rounded corners */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+}
+
+.logo-image {
+  max-width: 200px; /* Adjust size as needed */
+  height: auto;
+  display: block;
+}
