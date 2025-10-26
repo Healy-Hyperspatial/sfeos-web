@@ -43,6 +43,12 @@ function StacClient() {
     setSelectedCollection(collection);
   };
 
+  const handleZoomToBbox = (bbox) => {
+    // bbox format: [minLon, minLat, maxLon, maxLat]
+    // Dispatch event or callback to parent component to handle map zoom
+    window.dispatchEvent(new CustomEvent('zoomToBbox', { detail: { bbox } }));
+  };
+
   return (
     <StacCollectionSelector 
       collections={collections}
@@ -50,6 +56,7 @@ function StacClient() {
       error={error}
       selectedCollection={selectedCollection}
       onCollectionChange={handleCollectionChange}
+      onZoomToBbox={handleZoomToBbox}
     />
   );
 }
