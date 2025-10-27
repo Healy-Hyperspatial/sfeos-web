@@ -8,6 +8,7 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap }) {
   const [isQueryItemsVisible, setIsQueryItemsVisible] = useState(false);
   const [queryItems, setQueryItems] = useState([]);
   const [itemLimit, setItemLimit] = useState(10);
+  const [selectedItemId, setSelectedItemId] = useState(null);
 
   // Fetch query items when the component mounts or collection changes
   useEffect(() => {
@@ -105,16 +106,28 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap }) {
     if (newIsExpanded && queryItems.length > 0) {
       console.log('Query items expanded, items:', queryItems);
       
-      // If we have items with bbox, zoom to the first one
-      const firstItem = queryItems[0];
-      if (firstItem?.bbox) {
-        const bbox = firstItem.bbox;
-        console.log('Zooming to first item bbox:', bbox);
+      // Calculate bounding box that encompasses all items
+      let minLon = Infinity, minLat = Infinity, maxLon = -Infinity, maxLat = -Infinity;
+      let hasBbox = false;
+      
+      queryItems.forEach(item => {
+        if (item.bbox && item.bbox.length === 4) {
+          hasBbox = true;
+          minLon = Math.min(minLon, item.bbox[0]);
+          minLat = Math.min(minLat, item.bbox[1]);
+          maxLon = Math.max(maxLon, item.bbox[2]);
+          maxLat = Math.max(maxLat, item.bbox[3]);
+        }
+      });
+      
+      if (hasBbox) {
+        const combinedBbox = [minLon, minLat, maxLon, maxLat];
+        console.log('Zooming to combined bbox:', combinedBbox);
         
         // Create and dispatch the zoom event
         const zoomEvent = new CustomEvent('zoomToBbox', { 
           detail: { 
-            bbox,
+            bbox: combinedBbox,
             options: {
               padding: 50,
               maxZoom: 14,
@@ -133,6 +146,33 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap }) {
         console.log('Calling onShowItemsOnMap with items');
         onShowItemsOnMap(queryItems);
       }
+    }
+  };
+
+  const handleItemClick = (item) => {
+    console.log('Item clicked:', item);
+    setSelectedItemId(item.id);
+    
+    // Show only this item on the map
+    if (onShowItemsOnMap) {
+      console.log('Showing single item on map:', item);
+      onShowItemsOnMap([item]);
+    }
+    
+    // Zoom to the item's bbox if available
+    if (item.bbox) {
+      const zoomEvent = new CustomEvent('zoomToBbox', { 
+        detail: { 
+          bbox: item.bbox,
+          options: {
+            padding: 50,
+            maxZoom: 14,
+            essential: true
+          }
+        } 
+      });
+      console.log('Zooming to item bbox:', item.bbox);
+      window.dispatchEvent(zoomEvent);
     }
   };
 
@@ -208,7 +248,14 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap }) {
             {queryItems.length > 0 ? (
               <ul>
                 {queryItems.map(item => (
-                  <li key={item.id}>
+                  <li 
+                    key={item.id}
+                    className={`item-list-item ${selectedItemId === item.id ? 'selected' : ''}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleItemClick(item);
+                    }}
+                  >
                     {item.title}
                   </li>
                 ))}
