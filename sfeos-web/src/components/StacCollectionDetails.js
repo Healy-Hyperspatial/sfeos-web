@@ -7,6 +7,7 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap }) {
   const [isBoundingBoxVisible, setIsBoundingBoxVisible] = useState(false);
   const [isQueryItemsVisible, setIsQueryItemsVisible] = useState(false);
   const [queryItems, setQueryItems] = useState([]);
+  const [itemLimit, setItemLimit] = useState(10);
 
   // Fetch query items when the component mounts or collection changes
   useEffect(() => {
@@ -16,7 +17,7 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap }) {
       const fetchItems = async () => {
         try {
           const baseUrl = process.env.REACT_APP_STAC_API_BASE_URL || 'http://localhost:8080';
-          const url = `${baseUrl}/collections/${collection.id}/items?limit=10`;
+          const url = `${baseUrl}/collections/${collection.id}/items?limit=${itemLimit}`;
           console.log(`Fetching items from: ${url}`);
           
           const response = await fetch(url);
@@ -25,7 +26,7 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap }) {
             console.log('Received items data:', data);
             
             if (data.features && data.features.length > 0) {
-              const items = data.features.slice(0, 10).map(item => {
+              const items = data.features.slice(0, itemLimit).map(item => {
                 const itemData = {
                   id: item.id,
                   title: item.properties?.title || item.id,
@@ -56,7 +57,7 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap }) {
     } else {
       console.log('No collection ID available to fetch items');
     }
-  }, [collection]);
+  }, [collection, itemLimit]);
 
   if (!collection) return null;
 
@@ -191,6 +192,19 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap }) {
         {isQueryItemsVisible && (
           <div className="stac-details-expanded">
             <h4>Query Items</h4>
+            <div className="limit-input-container">
+              <label htmlFor="item-limit">Limit:</label>
+              <input 
+                id="item-limit"
+                type="number" 
+                min="1" 
+                max="1000" 
+                value={itemLimit}
+                onChange={(e) => setItemLimit(Math.max(1, parseInt(e.target.value) || 1))}
+                onClick={(e) => e.stopPropagation()}
+                className="limit-input"
+              />
+            </div>
             {queryItems.length > 0 ? (
               <ul>
                 {queryItems.map(item => (

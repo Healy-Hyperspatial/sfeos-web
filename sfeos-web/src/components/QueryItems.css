@@ -7,7 +7,7 @@
   top: 185px;
   left: 0px;
   z-index: 1001;
-  background-color: rgba(255, 255, 255, 0.65);
+  background-color: rgba(255, 255, 255, 0.85);
   padding: 15px;
   border-radius: 8px;
   width: 280px;
@@ -43,4 +43,33 @@
   margin-bottom: 8px;
   font-size: 0.6rem;
   color: #666;
+}
+
+.limit-input-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.limit-input-container label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #333;
+  white-space: nowrap;
+}
+
+.limit-input {
+  width: 60px;
+  padding: 4px 6px;
+  font-size: 0.7rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+.limit-input:focus {
+  outline: none;
+  border-color: #4a90e2;
+  box-shadow: 0 0 4px rgba(74, 144, 226, 0.3);
 }
