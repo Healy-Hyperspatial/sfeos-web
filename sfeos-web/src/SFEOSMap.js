@@ -19,9 +19,11 @@ function SFEOSMap() {
     zoom: 12
   });
   const [isMapLoaded, setIsMapLoaded] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   
   // Refs
   const mapRef = useRef(null);
+  const containerRef = useRef(null);
   const bboxLayers = useRef(new Set()); // Track bounding box layer IDs
   
   // Event Handlers
@@ -43,6 +45,58 @@ function SFEOSMap() {
   
   const handleStyleChange = useCallback((newStyle) => {
     setMapStyle(newStyle);
+  }, []);
+
+  const handleFullscreen = useCallback(() => {
+    if (!containerRef.current) return;
+
+    const elem = containerRef.current;
+    const isCurrentlyFullscreen = document.fullscreenElement === elem;
+
+    if (isCurrentlyFullscreen) {
+      // Exit fullscreen
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      } else if (document.mozCancelFullScreen) {
+        document.mozCancelFullScreen();
+      } else if (document.msExitFullscreen) {
+        document.msExitFullscreen();
+      }
+      setIsFullscreen(false);
+    } else {
+      // Enter fullscreen
+      if (elem.requestFullscreen) {
+        elem.requestFullscreen();
+      } else if (elem.webkitRequestFullscreen) {
+        elem.webkitRequestFullscreen();
+      } else if (elem.mozRequestFullScreen) {
+        elem.mozRequestFullScreen();
+      } else if (elem.msRequestFullscreen) {
+        elem.msRequestFullscreen();
+      }
+      setIsFullscreen(true);
+    }
+  }, []);
+
+  // Listen for fullscreen changes
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('msfullscreenchange', handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('msfullscreenchange', handleFullscreenChange);
+    };
   }, []);
 
   
@@ -437,7 +491,7 @@ function SFEOSMap() {
   // handleShowItemsOnMap has been moved up in the file
 
   return (
-    <div className="map-container" style={{ width: '100%', height: '100%' }}>
+    <div className="map-container" ref={containerRef} style={{ width: '100%', height: '100%' }}>
       <MapLibreMap
         ref={mapRef}
         // Set the initial map state
@@ -486,6 +540,15 @@ function SFEOSMap() {
       <div className="map-controls">
         <Container fluid>
           <Row className="justify-content-end">
+            <Col xs="auto">
+              <button 
+                className="fullscreen-btn"
+                onClick={handleFullscreen}
+                title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+              >
+                {isFullscreen ? '⛶' : '⛶'}
+              </button>
+            </Col>
             <Col xs="auto">
               <MapStyleSelector 
                 value={mapStyle} 
