@@ -45,56 +45,38 @@ function SFEOSMap() {
     setMapStyle(newStyle);
   }, []);
 
-  // Function to add a bounding box to the map
-  const addBoundingBox = useCallback((map, id, bbox, color = '#FF0000', width = 2) => {
-    if (!map || !bbox || bbox.length !== 4) {
-      console.warn('Invalid bbox in addBoundingBox:', bbox);
+  
+  // Function to add a geometry to the map
+  const addGeometry = useCallback((map, id, geometry, color = '#FF0000', width = 2) => {
+    if (!map || !geometry) {
+      console.warn('Invalid geometry in addGeometry:', geometry);
       return;
     }
     
-    // Ensure the coordinates are in the correct order: [minLon, minLat, maxLon, maxLat]
-    const [minLon, minLat, maxLon, maxLat] = [
-      Math.min(bbox[0], bbox[2]),
-      Math.min(bbox[1], bbox[3]),
-      Math.max(bbox[0], bbox[2]),
-      Math.max(bbox[1], bbox[3])
-    ];
+    console.log(`Adding geometry ${id}:`, geometry);
     
-    console.log(`Adding bbox ${id}:`, { minLon, minLat, maxLon, maxLat });
-    
-    // Create a GeoJSON feature for the bounding box
-    const bboxFeature = {
+    // Create a GeoJSON feature for the geometry
+    const geometryFeature = {
       type: 'Feature',
-      geometry: {
-        type: 'Polygon',
-        coordinates: [
-          [
-            [minLon, minLat],
-            [maxLon, minLat],
-            [maxLon, maxLat],
-            [minLon, maxLat],
-            [minLon, minLat] // Close the polygon
-          ]
-        ]
-      },
-      properties: {}
+      geometry: geometry,
+      properties: { id }
     };
     
     // Add the source if it doesn't exist
-    if (!map.getSource(`bbox-${id}`)) {
-      map.addSource(`bbox-${id}`, {
+    if (!map.getSource(`geometry-${id}`)) {
+      map.addSource(`geometry-${id}`, {
         type: 'geojson',
         data: {
           type: 'FeatureCollection',
-          features: [bboxFeature]
+          features: [geometryFeature]
         }
       });
       
       // Add the layer
       map.addLayer({
-        id: `bbox-${id}`,
+        id: `geometry-${id}`,
         type: 'line',
-        source: `bbox-${id}`,
+        source: `geometry-${id}`,
         layout: {},
         paint: {
           'line-color': color,
@@ -105,9 +87,9 @@ function SFEOSMap() {
       
       // Add fill layer for better visibility
       map.addLayer({
-        id: `bbox-fill-${id}`,
+        id: `geometry-fill-${id}`,
         type: 'fill',
-        source: `bbox-${id}`,
+        source: `geometry-${id}`,
         layout: {},
         paint: {
           'fill-color': color,
@@ -116,27 +98,27 @@ function SFEOSMap() {
       });
       
       // Track the layer IDs
-      bboxLayers.current.add(`bbox-${id}`);
-      bboxLayers.current.add(`bbox-fill-${id}`);
+      bboxLayers.current.add(`geometry-${id}`);
+      bboxLayers.current.add(`geometry-fill-${id}`);
     } else {
       // Update existing source
-      map.getSource(`bbox-${id}`).setData({
+      map.getSource(`geometry-${id}`).setData({
         type: 'FeatureCollection',
-        features: [bboxFeature]
+        features: [geometryFeature]
       });
     }
   }, []);
   
-  // Function to clear all bounding boxes
-  const clearBoundingBoxes = useCallback((map) => {
+  // Function to clear all geometries
+  const clearGeometries = useCallback((map) => {
     if (!map) return;
     
-    // Remove all layers and sources that start with 'bbox-'
+    // Remove all layers and sources that start with 'geometry-'
     bboxLayers.current.forEach(layerId => {
       if (map.getLayer(layerId)) {
         map.removeLayer(layerId);
       }
-      const sourceId = layerId.replace('-line', '');
+      const sourceId = layerId.replace('-fill', '').replace('-line', '');
       if (map.getSource(sourceId)) {
         map.removeSource(sourceId);
       }
@@ -175,30 +157,42 @@ function SFEOSMap() {
     }
     
     try {
-      // Clear any existing bounding boxes
-      console.log('🧹 Clearing existing bounding boxes');
-      clearBoundingBoxes(map);
+      // Clear any existing geometries
+      console.log('🧹 Clearing existing geometries');
+      clearGeometries(map);
       
-      // Process items and add their bounding boxes
-      const validBboxes = items
-        .filter(item => item?.bbox?.length === 4)
+      // Process items and add their geometries
+      const validGeometries = items
+        .filter(item => item?.geometry)
         .map(item => ({
-          bbox: item.bbox,
+          geometry: item.geometry,
           id: item.id || `item-${Math.random().toString(36).substr(2, 9)}`
         }));
         
-      if (validBboxes.length === 0) {
-        console.error('❌ No valid bounding boxes found in items');
+      if (validGeometries.length === 0) {
+        console.error('❌ No valid geometries found in items');
         return;
       }
       
-      // Calculate combined bounds
-      const combinedBbox = validBboxes.reduce((acc, { bbox }) => [
-        Math.min(acc[0], bbox[0]), // minLon
-        Math.min(acc[1], bbox[1]), // minLat
-        Math.max(acc[2], bbox[2]), // maxLon
-        Math.max(acc[3], bbox[3])  // maxLat
-      ], [Infinity, Infinity, -Infinity, -Infinity]);
+      // Calculate combined bounds from all geometries
+      let combinedBbox = [Infinity, Infinity, -Infinity, -Infinity];
+      
+      validGeometries.forEach(({ geometry }) => {
+        if (geometry.type === 'Polygon' && geometry.coordinates) {
+          geometry.coordinates[0].forEach(([lon, lat]) => {
+            combinedBbox[0] = Math.min(combinedBbox[0], lon);
+            combinedBbox[1] = Math.min(combinedBbox[1], lat);
+            combinedBbox[2] = Math.max(combinedBbox[2], lon);
+            combinedBbox[3] = Math.max(combinedBbox[3], lat);
+          });
+        } else if (geometry.type === 'Point' && geometry.coordinates) {
+          const [lon, lat] = geometry.coordinates;
+          combinedBbox[0] = Math.min(combinedBbox[0], lon);
+          combinedBbox[1] = Math.min(combinedBbox[1], lat);
+          combinedBbox[2] = Math.max(combinedBbox[2], lon);
+          combinedBbox[3] = Math.max(combinedBbox[3], lat);
+        }
+      });
       
       console.log('Combined bbox:', combinedBbox);
       
@@ -238,22 +232,22 @@ function SFEOSMap() {
         essential: true
       });
       
-      // Add bounding box for each valid item
-      validBboxes.forEach(({ bbox, id }, index) => {
+      // Add geometry for each valid item
+      validGeometries.forEach(({ geometry, id }, index) => {
         const hue = (index * 137.5) % 360; // Golden angle for distinct colors
         const color = `hsl(${hue}, 80%, 50%)`;
-        console.log(`🎨 Adding bbox for item ${index} (${id}):`, bbox);
-        addBoundingBox(map, id, bbox, color, 2);
+        console.log(`🎨 Adding geometry for item ${index} (${id}):`, geometry);
+        addGeometry(map, id, geometry, color, 2);
       });
       
       console.log('=== END handleShowItemsOnMap ===');
     } catch (error) {
       console.error('Error in handleShowItemsOnMap:', error);
     }
-  }, [addBoundingBox, clearBoundingBoxes, setViewState]);
+  }, [addGeometry, clearGeometries, setViewState]);
 
   // Function to handle zooming to a bounding box
-  const handleZoomToBbox = async (event) => {
+  const handleZoomToBbox = useCallback(async (event) => {
     console.log('handleZoomToBbox called with event:', event);
     const { bbox, options = {} } = event.detail || {};
     
@@ -374,7 +368,7 @@ function SFEOSMap() {
     } catch (error) {
       console.error('Error in handleZoomToBbox:', error);
     }
-  };
+  }, []);
 
   // The zoom to bbox functionality is handled by the handleZoomToBbox function
 

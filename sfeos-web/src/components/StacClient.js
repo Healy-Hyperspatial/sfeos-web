@@ -55,34 +55,18 @@ function StacClient({ onShowItemsOnMap: propOnShowItemsOnMap }) {
       return;
     }
     
-    // Calculate combined bounding box that contains all items
-    const validBboxes = items
-      .filter(item => item && item.bbox && Array.isArray(item.bbox) && item.bbox.length === 4)
-      .map(item => item.bbox);
-    
-    let combinedBbox = null;
-    if (validBboxes.length > 0) {
-      combinedBbox = [
-        Math.min(...validBboxes.map(b => b[0])), // minX
-        Math.min(...validBboxes.map(b => b[1])), // minY
-        Math.max(...validBboxes.map(b => b[2])), // maxX
-        Math.max(...validBboxes.map(b => b[3]))  // maxY
-      ];
-    }
-    
-    console.log('Dispatching showItemsOnMap event with items and combined bbox:', { items, combinedBbox });
+    console.log('Dispatching showItemsOnMap event with items:', items);
     
     // Dispatch event to show items on map
     window.dispatchEvent(new CustomEvent('showItemsOnMap', { 
       detail: { 
-        items,
-        bbox: combinedBbox 
+        items
       } 
     }));
     
     // If a prop callback is provided, use that as well (for testing or alternative implementations)
     if (propOnShowItemsOnMap) {
-      propOnShowItemsOnMap(items, combinedBbox);
+      propOnShowItemsOnMap(items);
     }
   };
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './StacCollectionDetails.css';
+import './QueryItems.css';
 
 function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap }) {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
@@ -28,9 +29,10 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap }) {
                 const itemData = {
                   id: item.id,
                   title: item.properties?.title || item.id,
+                  geometry: item.geometry || null,
                   bbox: item.bbox || null
                 };
-                console.log(`Item ${itemData.id} bbox:`, itemData.bbox);
+                console.log(`Item ${itemData.id} geometry:`, itemData.geometry);
                 return itemData;
               });
               
