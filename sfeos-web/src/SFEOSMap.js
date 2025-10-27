@@ -538,25 +538,23 @@ function SFEOSMap() {
       />
       <StacClient />
       <div className="map-controls">
-        <Container fluid>
-          <Row className="justify-content-end">
-            <Col xs="auto">
-              <button 
-                className="fullscreen-btn"
-                onClick={handleFullscreen}
-                title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-              >
-                {isFullscreen ? '⛶' : '⛶'}
-              </button>
-            </Col>
-            <Col xs="auto">
-              <MapStyleSelector 
-                value={mapStyle} 
-                onChange={handleStyleChange} 
-              />
-            </Col>
-          </Row>
-        </Container>
+        <div className="control-section">
+          <div className="control-label">View</div>
+          <button 
+            className="fullscreen-btn"
+            onClick={handleFullscreen}
+            title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+          >
+            ⛶
+          </button>
+        </div>
+        <div className="control-section">
+          <div className="control-label">Map Style</div>
+          <MapStyleSelector 
+            value={mapStyle} 
+            onChange={handleStyleChange} 
+          />
+        </div>
       </div>
       <LogoOverlay />
     </div>
