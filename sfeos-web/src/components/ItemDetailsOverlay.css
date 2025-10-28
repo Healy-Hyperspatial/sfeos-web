@@ -10,8 +10,8 @@
 }
 
 .details-card {
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 10px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
   overflow: hidden;
   width: 280px; /* match Query Items width */
@@ -23,13 +23,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 10px;
-  background: rgba(255, 255, 255, 0.9);
+  padding: 8px 14px; /* match left padding with other boxes */
+  background: rgba(255, 255, 255, 0.7); /* ensure 0.7 transparency */
   border-bottom: 1px solid rgba(0,0,0,0.06);
 }
 
 .details-title {
-  font-size: 0.85rem;
+  font-size: 0.7rem;
   color: #333;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -46,8 +46,8 @@
 }
 
 .details-body {
-  padding: 10px 12px;
-  background: #f9fafb;
+  padding: 10px 14px; /* shift text to the right to align with other boxes */
+  background: transparent; /* let the semi-transparent card background show through */
 }
 
 .details-row {
@@ -55,7 +55,7 @@
   justify-content: space-between;
   gap: 8px;
   margin-bottom: 6px;
-  font-size: 0.8rem;
+  font-size: 0.6rem;
 }
 
 .details-row .label {

@@ -475,6 +475,8 @@ function SFEOSMap() {
         const { url, title, type } = event.detail || {};
         if (url) {
           setThumbnail({ url, title: title || '', type: type || null });
+          // Hide details overlay when showing thumbnail
+          setItemDetails(null);
         } else {
           console.warn('showItemThumbnail event missing url');
         }
@@ -488,6 +490,8 @@ function SFEOSMap() {
         const d = event.detail || null;
         if (d) {
           setItemDetails(d);
+          // Hide thumbnail overlay when showing details
+          setThumbnail({ url: null, title: '', type: null });
         } else {
           console.warn('showItemDetails event missing detail');
         }
