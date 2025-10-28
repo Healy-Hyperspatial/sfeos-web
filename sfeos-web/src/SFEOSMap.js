@@ -6,6 +6,7 @@ import LogoOverlay from './components/LogoOverlay';
 import ThumbnailOverlay from './components/ThumbnailOverlay';
 import ItemDetailsOverlay from './components/ItemDetailsOverlay';
 import MapStyleSelector from './components/MapStyleSelector';
+import DarkModeToggle from './components/DarkModeToggle';
 import StacClient from './components/StacClient';
 import './SFEOSMap.css';
 
@@ -155,15 +156,6 @@ function SFEOSMap() {
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
-    };
-    
-    const hideOverlaysHandler = () => {
-      try {
-        setThumbnail({ url: null, title: '', type: null });
-        setItemDetails(null);
-      } catch (e) {
-        console.error('Error handling hideOverlays:', e);
-      }
     };
 
     document.addEventListener('fullscreenchange', handleFullscreenChange);
@@ -814,6 +806,13 @@ function SFEOSMap() {
           <MapStyleSelector 
             value={mapStyle} 
             onChange={handleStyleChange} 
+          />
+        </div>
+        <div className="control-section">
+          <div className="control-label">Theme</div>
+          <DarkModeToggle 
+            currentStyle={mapStyle}
+            onStyleChange={handleStyleChange}
           />
         </div>
       </div>

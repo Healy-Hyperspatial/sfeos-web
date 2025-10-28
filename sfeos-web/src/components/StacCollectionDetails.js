@@ -27,7 +27,7 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap }) {
       setIsDescriptionExpanded(false);
       setIsBoundingBoxVisible(false);
     }
-  }, [collection?.id]);
+  }, [collection]);
 
   // Fetch query items when the component mounts or collection changes
   useEffect(() => {
