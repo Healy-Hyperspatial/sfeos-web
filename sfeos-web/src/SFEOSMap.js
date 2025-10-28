@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Map as MapLibreMap } from 'react-map-gl/maplibre';
-import { Container, Row, Col } from 'react-bootstrap';
 import LogoOverlay from './components/LogoOverlay';
 import MapStyleSelector from './components/MapStyleSelector';
 import StacClient from './components/StacClient';
