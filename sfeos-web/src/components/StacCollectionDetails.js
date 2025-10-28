@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './StacCollectionDetails.css';
 import './QueryItems.css';
 
@@ -10,6 +10,22 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap }) {
   const [itemLimit, setItemLimit] = useState(10);
   const [selectedItemId, setSelectedItemId] = useState(null);
   const [isBboxModeOn, setIsBboxModeOn] = useState(false);
+  const prevCollectionId = useRef(null);
+
+  // Detect collection changes and reset state
+  useEffect(() => {
+    if (collection && collection.id && prevCollectionId.current !== collection.id) {
+      console.log(`Collection changed to: ${collection.id}`);
+      prevCollectionId.current = collection.id;
+      // Reset state when collection changes
+      setIsQueryItemsVisible(false);
+      setItemLimit(10);
+      setQueryItems([]);
+      setSelectedItemId(null);
+      setIsDescriptionExpanded(false);
+      setIsBoundingBoxVisible(false);
+    }
+  }, [collection?.id]);
 
   // Fetch query items when the component mounts or collection changes
   useEffect(() => {
