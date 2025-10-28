@@ -653,7 +653,7 @@ function SFEOSMap() {
           const data = await resp.json();
           const features = Array.isArray(data.features) ? data.features : [];
           console.log('Search returned', features.length, 'features');
-          window.dispatchEvent(new CustomEvent('showItemsOnMap', { detail: { items: features } }));
+          window.dispatchEvent(new CustomEvent('showItemsOnMap', { detail: { items: features, numberReturned: data.numberReturned, numberMatched: data.numberMatched } }));
           window.dispatchEvent(new CustomEvent('zoomToBbox', { detail: { bbox } }));
         } else {
           // No bbox drawn, trigger re-fetch of query items with current limit
@@ -765,7 +765,7 @@ function SFEOSMap() {
             if (!resp.ok) throw new Error(`Search failed: ${resp.status}`);
             const data = await resp.json();
             const features = Array.isArray(data.features) ? data.features : [];
-            window.dispatchEvent(new CustomEvent('showItemsOnMap', { detail: { items: features } }));
+            window.dispatchEvent(new CustomEvent('showItemsOnMap', { detail: { items: features, numberReturned: data.numberReturned, numberMatched: data.numberMatched } }));
             window.dispatchEvent(new CustomEvent('zoomToBbox', { detail: { bbox } }));
             // Optionally exit draw mode after search
             setIsDrawingBbox(false);

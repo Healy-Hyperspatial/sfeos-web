@@ -10,6 +10,8 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap }) {
   const [itemLimit, setItemLimit] = useState(10);
   const [selectedItemId, setSelectedItemId] = useState(null);
   const [isBboxModeOn, setIsBboxModeOn] = useState(false);
+  const [numberReturned, setNumberReturned] = useState(null);
+  const [numberMatched, setNumberMatched] = useState(null);
   const prevCollectionId = useRef(null);
 
   // Detect collection changes and reset state
@@ -42,6 +44,10 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap }) {
           if (response.ok) {
             const data = await response.json();
             console.log('Received items data:', data);
+            
+            // Capture search result counts
+            setNumberReturned(data.numberReturned || data.features?.length || 0);
+            setNumberMatched(data.numberMatched || data.features?.length || 0);
             
             if (data.features && data.features.length > 0) {
               const items = data.features.slice(0, itemLimit).map(item => {
@@ -159,6 +165,11 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap }) {
         if (response.ok) {
           const data = await response.json();
           console.log('Response data features count:', data.features?.length);
+          
+          // Capture search result counts
+          setNumberReturned(data.numberReturned || data.features?.length || 0);
+          setNumberMatched(data.numberMatched || data.features?.length || 0);
+          
           if (data.features && data.features.length > 0) {
             console.log('Processing', data.features.length, 'features');
             const items = data.features.map(item => {
@@ -232,6 +243,22 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap }) {
     window.addEventListener('refetchQueryItems', handler);
     return () => window.removeEventListener('refetchQueryItems', handler);
   }, [collection]);
+
+  // Listen for showItemsOnMap event to capture search result counts
+  useEffect(() => {
+    const handler = (event) => {
+      const numberReturned = event?.detail?.numberReturned;
+      const numberMatched = event?.detail?.numberMatched;
+      if (numberReturned !== undefined) {
+        setNumberReturned(numberReturned);
+      }
+      if (numberMatched !== undefined) {
+        setNumberMatched(numberMatched);
+      }
+    };
+    window.addEventListener('showItemsOnMap', handler);
+    return () => window.removeEventListener('showItemsOnMap', handler);
+  }, []);
 
   if (!collection) return null;
 
@@ -420,12 +447,32 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap }) {
           onClick={handleQueryItemsClick}
         >
           <span className="expand-arrow">{isQueryItemsVisible ? '◀' : '▶'}</span>
-          <span className="expand-label">Query Items</span>
+          <span className="expand-label">
+            Query Items
+            {(numberReturned !== null || numberMatched !== null) && (
+              <span style={{ fontSize: '0.85em', marginLeft: '8px', color: '#666' }}>
+                ({numberReturned !== null ? numberReturned : '?'}/{numberMatched !== null ? numberMatched : '?'})
+              </span>
+            )}
+          </span>
         </button>
         {isQueryItemsVisible && (
           <div className="stac-details-expanded">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-              <h4 style={{ margin: 0 }}>Query Items</h4>
+              <div>
+                <h4 style={{ margin: '0 0 5px 0' }}>Query Items</h4>
+                {(numberReturned !== null || numberMatched !== null) && (
+                  <p style={{ margin: 0, fontSize: '0.85em', color: '#666' }}>
+                    {numberReturned !== null && numberMatched !== null
+                      ? `Returned: ${numberReturned} / Matched: ${numberMatched}`
+                      : numberReturned !== null
+                      ? `Returned: ${numberReturned}`
+                      : numberMatched !== null
+                      ? `Matched: ${numberMatched}`
+                      : ''}
+                  </p>
+                )}
+              </div>
               <button
                 type="button"
                 className="search-btn"
