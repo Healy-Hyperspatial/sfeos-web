@@ -9,6 +9,7 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap }) {
   const [queryItems, setQueryItems] = useState([]);
   const [itemLimit, setItemLimit] = useState(10);
   const [selectedItemId, setSelectedItemId] = useState(null);
+  const [isBboxModeOn, setIsBboxModeOn] = useState(false);
 
   // Fetch query items when the component mounts or collection changes
   useEffect(() => {
@@ -113,6 +114,16 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap }) {
       console.log('No collection ID available to fetch items');
     }
   }, [collection, itemLimit]);
+
+  // Listen for bboxModeChanged event to update button state
+  useEffect(() => {
+    const handler = (event) => {
+      const isOn = event?.detail?.isOn || false;
+      setIsBboxModeOn(isOn);
+    };
+    window.addEventListener('bboxModeChanged', handler);
+    return () => window.removeEventListener('bboxModeChanged', handler);
+  }, []);
 
   // Listen for refetchQueryItems event to re-fetch with new limit
   useEffect(() => {
@@ -397,7 +408,25 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap }) {
         </button>
         {isQueryItemsVisible && (
           <div className="stac-details-expanded">
-            <h4>Query Items</h4>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+              <h4 style={{ margin: 0 }}>Query Items</h4>
+              <button
+                type="button"
+                className="search-btn"
+                title="Search (bbox if drawn, else query items)"
+                aria-label="Search"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  try {
+                    window.dispatchEvent(new CustomEvent('runSearch', { detail: { limit: itemLimit } }));
+                  } catch (err) {
+                    console.warn('Failed to dispatch runSearch:', err);
+                  }
+                }}
+              >
+                🔎
+              </button>
+            </div>
             <div className="limit-input-container">
               <label htmlFor="item-limit">Limit:</label>
               <input 
@@ -416,12 +445,11 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap }) {
                   }
                 }} 
               />
-              <span className="bbox-label">BBOX:</span>
               <button
                 type="button"
-                className="bbox-btn"
-                title="BBox search"
-                aria-label="BBox search"
+                className={`bbox-btn ${isBboxModeOn ? 'bbox-on' : 'bbox-off'}`}
+                title="Toggle BBox draw mode"
+                aria-label="Toggle BBox draw mode"
                 onClick={(e) => {
                   e.stopPropagation();
                   try {
@@ -431,24 +459,7 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap }) {
                   }
                 }}
               >
-                ▭
-              </button>
-              <button
-                type="button"
-                className="search-btn"
-                title="Search (bbox if drawn, else query items)"
-                aria-label="Search"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  try {
-                    // Try bbox search first; if no bbox, fall back to re-fetching query items
-                    window.dispatchEvent(new CustomEvent('runSearch', { detail: { limit: itemLimit } }));
-                  } catch (err) {
-                    console.warn('Failed to dispatch runSearch:', err);
-                  }
-                }}
-              >
-                🔎
+                BBOX: {isBboxModeOn ? 'ON' : 'OFF'}
               </button>
             </div>
             {(() => { console.log('Rendering Query Items list with', queryItems.length, 'items'); return queryItems.length > 0; })() ? (

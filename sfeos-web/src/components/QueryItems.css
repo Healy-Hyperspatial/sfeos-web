@@ -146,13 +146,35 @@
   background: rgba(255,255,255,0.6);
   color: #000;
   border-radius: 6px;
-  padding: 2px 6px;
-  font-size: 0.7rem;
+  padding: 4px 8px;
+  font-size: 0.65rem;
+  font-weight: 600;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .bbox-btn:hover {
   background: rgba(0,0,0,0.08);
+}
+
+.bbox-btn.bbox-on {
+  background: rgba(76, 175, 80, 0.3);
+  border-color: #4caf50;
+  color: #2e7d32;
+}
+
+.bbox-btn.bbox-on:hover {
+  background: rgba(76, 175, 80, 0.5);
+}
+
+.bbox-btn.bbox-off {
+  background: rgba(244, 67, 54, 0.1);
+  border-color: #f44336;
+  color: #c62828;
+}
+
+.bbox-btn.bbox-off:hover {
+  background: rgba(244, 67, 54, 0.2);
 }
 
 .limit-input {

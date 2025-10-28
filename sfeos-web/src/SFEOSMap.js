@@ -593,14 +593,20 @@ function SFEOSMap() {
     const toggleBboxSearchHandler = () => {
       const map = mapRef.current?.getMap();
       if (!map) return;
-      if (isDrawingBbox) {
-        setIsDrawingBbox(false);
-        setDragStartLngLat(null);
-      } else {
+      const newState = !isDrawingBbox;
+      if (newState) {
         // Enable drawing; clear previous box
         setIsDrawingBbox(true);
         clearBboxLayer(map);
         setCurrentBbox(null);
+        console.log('🔲 BBox drawing ON');
+        window.dispatchEvent(new CustomEvent('bboxModeChanged', { detail: { isOn: true } }));
+      } else {
+        // Turning off drawing
+        setIsDrawingBbox(false);
+        setDragStartLngLat(null);
+        console.log('🔲 BBox drawing OFF');
+        window.dispatchEvent(new CustomEvent('bboxModeChanged', { detail: { isOn: false } }));
       }
     };
     window.addEventListener('toggleBboxSearch', toggleBboxSearchHandler);
