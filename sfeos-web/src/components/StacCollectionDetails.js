@@ -205,6 +205,12 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap }) {
 
   const handleItemClick = (item) => {
     console.log('Item clicked:', item);
+    // Close any open overlays when selecting an item
+    try {
+      window.dispatchEvent(new CustomEvent('hideOverlays'));
+    } catch (err) {
+      console.warn('Failed to dispatch hideOverlays on item click:', err);
+    }
     setSelectedItemId(item.id);
     
     // Show only this item on the map

@@ -88,6 +88,15 @@ function SFEOSMap() {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
     };
+    
+    const hideOverlaysHandler = () => {
+      try {
+        setThumbnail({ url: null, title: '', type: null });
+        setItemDetails(null);
+      } catch (e) {
+        console.error('Error handling hideOverlays:', e);
+      }
+    };
 
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
@@ -499,12 +508,23 @@ function SFEOSMap() {
         console.error('Error handling showItemDetails:', e);
       }
     };
+
+    // Close all overlays
+    const hideOverlaysHandler = () => {
+      try {
+        setThumbnail({ url: null, title: '', type: null });
+        setItemDetails(null);
+      } catch (e) {
+        console.error('Error handling hideOverlays:', e);
+      }
+    };
     
     // Add event listeners
     window.addEventListener('zoomToBbox', zoomToBboxHandler);
     window.addEventListener('showItemsOnMap', showItemsOnMapHandler);
     window.addEventListener('showItemThumbnail', showItemThumbnailHandler);
     window.addEventListener('showItemDetails', showItemDetailsHandler);
+    window.addEventListener('hideOverlays', hideOverlaysHandler);
     
     // Log the current map state
     if (map) {
@@ -522,6 +542,7 @@ function SFEOSMap() {
       window.removeEventListener('showItemsOnMap', showItemsOnMapHandler);
       window.removeEventListener('showItemThumbnail', showItemThumbnailHandler);
       window.removeEventListener('showItemDetails', showItemDetailsHandler);
+      window.removeEventListener('hideOverlays', hideOverlaysHandler);
     };
   }, [isMapLoaded, handleZoomToBbox, handleShowItemsOnMap]);
 
