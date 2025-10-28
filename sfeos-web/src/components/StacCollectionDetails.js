@@ -114,6 +114,98 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap }) {
     }
   }, [collection, itemLimit]);
 
+  // Listen for refetchQueryItems event to re-fetch with new limit
+  useEffect(() => {
+    const handler = async (event) => {
+      try {
+        const lim = Number(event?.detail?.limit);
+        if (!Number.isFinite(lim) || lim <= 0) return;
+        if (!collection || !collection.id) return;
+        
+        console.log('🔎 refetchQueryItems triggered with limit:', lim);
+        const baseUrl = process.env.REACT_APP_STAC_API_BASE_URL || 'http://localhost:8080';
+        const url = `${baseUrl}/collections/${collection.id}/items?limit=${lim}`;
+        console.log('Fetching from:', url);
+        
+        const response = await fetch(url);
+        console.log('Response status:', response.status, 'ok:', response.ok);
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Response data features count:', data.features?.length);
+          if (data.features && data.features.length > 0) {
+            console.log('Processing', data.features.length, 'features');
+            const items = data.features.map(item => {
+              let thumbnailUrl = null;
+              let thumbnailType = null;
+              try {
+                const assets = item.assets || {};
+                const assetsArr = Object.values(assets);
+                if (assets.thumbnail && assets.thumbnail.href) {
+                  thumbnailUrl = assets.thumbnail.href;
+                  thumbnailType = assets.thumbnail.type || null;
+                }
+                if (!thumbnailUrl) {
+                  const thumbAssetWeb = assetsArr.find(a => {
+                    const roles = Array.isArray(a.roles) ? a.roles : [];
+                    const type = (a.type || '').toLowerCase();
+                    return roles.includes('thumbnail') && (type.startsWith('image/jpeg') || type.startsWith('image/png'));
+                  });
+                  if (thumbAssetWeb) {
+                    thumbnailUrl = thumbAssetWeb.href;
+                    thumbnailType = thumbAssetWeb.type || null;
+                  }
+                }
+                if (!thumbnailUrl) {
+                  const thumbAny = assetsArr.find(a => {
+                    const roles = Array.isArray(a.roles) ? a.roles : [];
+                    return roles.includes('thumbnail') && a.href;
+                  });
+                  if (thumbAny) {
+                    thumbnailUrl = thumbAny.href;
+                    thumbnailType = thumbAny.type || null;
+                  }
+                }
+                if (!thumbnailUrl && Array.isArray(item.links)) {
+                  const link = item.links.find(l => l.rel === 'thumbnail' || l.rel === 'preview');
+                  if (link && link.href) {
+                    thumbnailUrl = link.href;
+                    thumbnailType = link.type || null;
+                  }
+                }
+              } catch (e) {
+                console.warn('Error extracting thumbnail:', e);
+              }
+              return {
+                id: item.id,
+                title: item.properties?.title || item.id,
+                geometry: item.geometry || null,
+                bbox: item.bbox || null,
+                thumbnailUrl,
+                thumbnailType,
+                datetime: item.properties?.datetime || item.properties?.start_datetime || null,
+                assetsCount: Object.keys(item.assets || {}).length
+              };
+            });
+            console.log('🔎 Fetched', items.length, 'items');
+            setQueryItems(items);
+            setSelectedItemId(null);
+            console.log('✅ Query items updated, now showing:', items.length);
+            // Also update the map with the new items
+            window.dispatchEvent(new CustomEvent('showItemsOnMap', { detail: { items } }));
+          } else {
+            console.warn('No features in response');
+          }
+        } else {
+          console.error('Response not ok:', response.status);
+        }
+      } catch (err) {
+        console.error('refetchQueryItems error:', err);
+      }
+    };
+    window.addEventListener('refetchQueryItems', handler);
+    return () => window.removeEventListener('refetchQueryItems', handler);
+  }, [collection]);
+
   if (!collection) return null;
 
   const bbox = collection.extent?.spatial?.bbox?.[0];
@@ -294,10 +386,11 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap }) {
         )}
       </div>
       
-      <div className="query-items" onClick={handleQueryItemsClick}>
+      <div className="query-items">
         <button 
           className="stac-expand-btn"
           title={isQueryItemsVisible ? "Hide query items" : "Show query items"}
+          onClick={handleQueryItemsClick}
         >
           <span className="expand-arrow">{isQueryItemsVisible ? '◀' : '▶'}</span>
           <span className="expand-label">Query Items</span>
@@ -313,7 +406,15 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap }) {
                 min="1" 
                 max="200" 
                 value={itemLimit} 
-                onChange={(e) => setItemLimit(parseInt(e.target.value || '10', 10))} 
+                onChange={(e) => {
+                  const next = parseInt(e.target.value || '10', 10);
+                  setItemLimit(next);
+                  try {
+                    window.dispatchEvent(new CustomEvent('itemLimitChanged', { detail: { limit: next } }));
+                  } catch (err) {
+                    console.warn('Failed to dispatch itemLimitChanged:', err);
+                  }
+                }} 
               />
               <span className="bbox-label">BBOX:</span>
               <button
@@ -332,8 +433,25 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap }) {
               >
                 ▭
               </button>
+              <button
+                type="button"
+                className="search-btn"
+                title="Search (bbox if drawn, else query items)"
+                aria-label="Search"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  try {
+                    // Try bbox search first; if no bbox, fall back to re-fetching query items
+                    window.dispatchEvent(new CustomEvent('runSearch', { detail: { limit: itemLimit } }));
+                  } catch (err) {
+                    console.warn('Failed to dispatch runSearch:', err);
+                  }
+                }}
+              >
+                🔎
+              </button>
             </div>
-            {queryItems.length > 0 ? (
+            {(() => { console.log('Rendering Query Items list with', queryItems.length, 'items'); return queryItems.length > 0; })() ? (
               <ul>
                 {queryItems.map(item => (
                   <li 

@@ -29,6 +29,7 @@ function SFEOSMap() {
   const [dragStartLngLat, setDragStartLngLat] = useState(null); // {lng, lat}
   const [currentBbox, setCurrentBbox] = useState(null); // [minLon, minLat, maxLon, maxLat]
   const [selectedCollectionId, setSelectedCollectionId] = useState(null);
+  const [currentItemLimit, setCurrentItemLimit] = useState(10);
   
   // Refs
   const mapRef = useRef(null);
@@ -261,35 +262,33 @@ function SFEOSMap() {
   }, []);
 
   const handleShowItemsOnMap = useCallback(async (event) => {
-    console.log('=== START handleShowItemsOnMap ===');
-    console.log('Event received:', event);
-    
-    // Get the map instance directly from the ref
-    const getMapInstance = () => {
-      if (!mapRef.current) return null;
-      try {
-        const map = mapRef.current.getMap();
-        return map.loaded() ? map : null;
-      } catch (error) {
-        console.error('Error getting map instance:', error);
-        return null;
-      }
-    };
-    
-    // Get the map instance
-    const map = getMapInstance();
-    if (!map) {
-      console.error('Map not available');
-      return;
-    }
-    
-    const { items = [] } = event.detail || {};
-    if (!Array.isArray(items) || items.length === 0) {
-      console.error('❌ No valid items array provided or empty items array');
-      return;
-    }
-    
     try {
+      console.log('📍 showItemsOnMap event received with', event?.detail?.items?.length, 'items');
+      
+      // Get the map instance
+      const getMapInstance = () => {
+        if (!mapRef.current) return null;
+        try {
+          const map = mapRef.current.getMap();
+          return map.loaded() ? map : null;
+        } catch (error) {
+          console.error('Error getting map instance:', error);
+          return null;
+        }
+      };
+      
+      const map = getMapInstance();
+      if (!map) {
+        console.error('Map not available');
+        return;
+      }
+      
+      const { items = [] } = event.detail || {};
+      if (!Array.isArray(items) || items.length === 0) {
+        console.error('❌ No valid items array provided or empty items array');
+        return;
+      }
+      
       // Clear any existing geometries
       console.log('🧹 Clearing existing geometries');
       clearGeometries(map);
@@ -373,7 +372,7 @@ function SFEOSMap() {
         addGeometry(map, id, geometry, color, 2);
       });
       
-      console.log('=== END handleShowItemsOnMap ===');
+      console.log('✅ Map updated with', validGeometries.length, 'geometries');
     } catch (error) {
       console.error('Error in handleShowItemsOnMap:', error);
     }
@@ -615,6 +614,51 @@ function SFEOSMap() {
       }
     };
     window.addEventListener('selectedCollectionChanged', selectedCollectionChangedHandler);
+
+    const itemLimitChangedHandler = (e) => {
+      try {
+        const lim = Number(e?.detail?.limit);
+        if (Number.isFinite(lim) && lim > 0) {
+          setCurrentItemLimit(lim);
+        }
+      } catch (err) {
+        console.warn('Error in itemLimitChangedHandler:', err);
+      }
+    };
+    window.addEventListener('itemLimitChanged', itemLimitChangedHandler);
+
+    const runSearchHandler = async (e) => {
+      try {
+        console.log('🔎 runSearch triggered, detail:', e?.detail);
+        const limFromEvent = Number(e?.detail?.limit);
+        const lim = Number.isFinite(limFromEvent) && limFromEvent > 0 ? limFromEvent : 10;
+        
+        // If a bbox is drawn, search within it
+        const bbox = currentBbox;
+        if (bbox && bbox.length === 4 && selectedCollectionId) {
+          console.log('🔎 Searching within drawn bbox');
+          const bboxParam = bbox.map(n => Number(n)).join(',');
+          console.log('Search params - bbox:', bboxParam, 'limit:', lim, 'collection:', selectedCollectionId);
+          const url = `${STAC_API_URL}/search?collections=${encodeURIComponent(selectedCollectionId)}&bbox=${encodeURIComponent(bboxParam)}&limit=${encodeURIComponent(lim)}`;
+          console.log('Search URL:', url);
+          window.dispatchEvent(new CustomEvent('hideOverlays'));
+          const resp = await fetch(url, { method: 'GET' });
+          if (!resp.ok) throw new Error(`Search failed: ${resp.status}`);
+          const data = await resp.json();
+          const features = Array.isArray(data.features) ? data.features : [];
+          console.log('Search returned', features.length, 'features');
+          window.dispatchEvent(new CustomEvent('showItemsOnMap', { detail: { items: features } }));
+          window.dispatchEvent(new CustomEvent('zoomToBbox', { detail: { bbox } }));
+        } else {
+          // No bbox drawn, trigger re-fetch of query items with current limit
+          console.log('🔎 No bbox, re-fetching query items with limit:', lim);
+          window.dispatchEvent(new CustomEvent('refetchQueryItems', { detail: { limit: lim } }));
+        }
+      } catch (err) {
+        console.error('runSearch error:', err);
+      }
+    };
+    window.addEventListener('runSearch', runSearchHandler);
     
     // Log the current map state
     if (map) {
@@ -635,8 +679,10 @@ function SFEOSMap() {
       window.removeEventListener('hideOverlays', hideOverlaysHandler);
       window.removeEventListener('toggleBboxSearch', toggleBboxSearchHandler);
       window.removeEventListener('selectedCollectionChanged', selectedCollectionChangedHandler);
+      window.removeEventListener('itemLimitChanged', itemLimitChangedHandler);
+      window.removeEventListener('runSearch', runSearchHandler);
     };
-  }, [isMapLoaded, handleZoomToBbox, handleShowItemsOnMap, isDrawingBbox, clearBboxLayer]);
+  }, [isMapLoaded, handleZoomToBbox, handleShowItemsOnMap, isDrawingBbox, clearBboxLayer, currentBbox, selectedCollectionId, currentItemLimit]);
 
   // handleShowItemsOnMap has been moved up in the file
 
@@ -706,7 +752,7 @@ function SFEOSMap() {
               return;
             }
             const bboxParam = bbox.map(n => Number(n)).join(',');
-            const limitParam = 20; // default limit; can be wired to UI limit if desired
+            const limitParam = currentItemLimit;
             const url = `${STAC_API_URL}/search?collections=${encodeURIComponent(selectedCollectionId)}&bbox=${encodeURIComponent(bboxParam)}&limit=${encodeURIComponent(limitParam)}`;
             window.dispatchEvent(new CustomEvent('hideOverlays'));
             const resp = await fetch(url, { method: 'GET' });
