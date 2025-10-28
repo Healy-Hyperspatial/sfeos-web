@@ -18,8 +18,8 @@ function ThumbnailOverlay({ url, title, type, onClose }) {
           {isWebImage ? (
             <img src={url} alt={title || 'Item thumbnail'} className="thumbnail-image" />
           ) : (
-            <div style={{ padding: '10px', fontSize: '0.8rem', color: '#333' }}>
-              <div style={{ marginBottom: '8px' }}>Thumbnail is not a web-friendly image type{type ? ` (${type})` : ''}.</div>
+            <div>
+              <div className="thumbnail-note">This app doesn't support inline preview for this image type yet{type ? ` (${type})` : ''}.</div>
               <a href={url} target="_blank" rel="noreferrer" className="thumbnail-download-btn">Open/Download</a>
             </div>
           )}
