@@ -7,7 +7,7 @@
   align-items: center;
   justify-content: center;
   /* New styles for the box */
-  background-color: rgba(255, 255, 255, 0.75); /* Semi-transparent white */
+  background-color: rgba(255, 255, 255, 0.7); /* Semi-transparent white */
   padding: 20px 60px 20px 20px; /* Space around the logo */
   border-radius: 12px; /* Rounded corners */
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow */
