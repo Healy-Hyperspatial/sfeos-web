@@ -9,6 +9,8 @@ import MapStyleSelector from './components/MapStyleSelector';
 import StacClient from './components/StacClient';
 import './SFEOSMap.css';
 
+const STAC_API_URL = process.env.REACT_APP_STAC_API_URL || 'http://localhost:8000';
+
 function SFEOSMap() {
   // State
   const [mapStyle, setMapStyle] = useState(
@@ -23,6 +25,10 @@ function SFEOSMap() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [thumbnail, setThumbnail] = useState({ url: null, title: '', type: null });
   const [itemDetails, setItemDetails] = useState(null);
+  const [isDrawingBbox, setIsDrawingBbox] = useState(false);
+  const [dragStartLngLat, setDragStartLngLat] = useState(null); // {lng, lat}
+  const [currentBbox, setCurrentBbox] = useState(null); // [minLon, minLat, maxLon, maxLat]
+  const [selectedCollectionId, setSelectedCollectionId] = useState(null);
   
   // Refs
   const mapRef = useRef(null);
@@ -44,6 +50,67 @@ function SFEOSMap() {
     
     console.log('Map center:', map.getCenter(), 'Zoom:', map.getZoom());
     setIsMapLoaded(true);
+  }, []);
+
+  // Helpers for bbox drawing layer
+  const addOrUpdateBboxLayer = useCallback((map, bbox) => {
+    if (!bbox || bbox.length !== 4) return;
+    const [minLon, minLat, maxLon, maxLat] = bbox.map(Number);
+    const polygon = {
+      type: 'Feature',
+      geometry: {
+        type: 'Polygon',
+        coordinates: [[
+          [minLon, minLat],
+          [maxLon, minLat],
+          [maxLon, maxLat],
+          [minLon, maxLat],
+          [minLon, minLat]
+        ]]
+      }
+    };
+    const sourceId = 'bbox-draw-source';
+    const fillLayerId = 'bbox-draw-fill';
+    const lineLayerId = 'bbox-draw-line';
+    if (map.getSource(sourceId)) {
+      map.getSource(sourceId).setData({ type: 'FeatureCollection', features: [polygon] });
+    } else {
+      map.addSource(sourceId, {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [polygon] }
+      });
+      map.addLayer({
+        id: fillLayerId,
+        type: 'fill',
+        source: sourceId,
+        paint: {
+          'fill-color': '#4a90e2',
+          'fill-opacity': 0.15
+        }
+      });
+      map.addLayer({
+        id: lineLayerId,
+        type: 'line',
+        source: sourceId,
+        paint: {
+          'line-color': '#4a90e2',
+          'line-width': 2
+        }
+      });
+    }
+  }, []);
+
+  const clearBboxLayer = useCallback((map) => {
+    const sourceId = 'bbox-draw-source';
+    const fillLayerId = 'bbox-draw-fill';
+    const lineLayerId = 'bbox-draw-line';
+    try {
+      if (map.getLayer(fillLayerId)) map.removeLayer(fillLayerId);
+      if (map.getLayer(lineLayerId)) map.removeLayer(lineLayerId);
+      if (map.getSource(sourceId)) map.removeSource(sourceId);
+    } catch (e) {
+      console.warn('Error clearing bbox draw layer:', e);
+    }
   }, []);
   
   const handleStyleChange = useCallback((newStyle) => {
@@ -524,7 +591,30 @@ function SFEOSMap() {
     window.addEventListener('showItemsOnMap', showItemsOnMapHandler);
     window.addEventListener('showItemThumbnail', showItemThumbnailHandler);
     window.addEventListener('showItemDetails', showItemDetailsHandler);
+    const toggleBboxSearchHandler = () => {
+      const map = mapRef.current?.getMap();
+      if (!map) return;
+      if (isDrawingBbox) {
+        setIsDrawingBbox(false);
+        setDragStartLngLat(null);
+      } else {
+        // Enable drawing; clear previous box
+        setIsDrawingBbox(true);
+        clearBboxLayer(map);
+        setCurrentBbox(null);
+      }
+    };
+    window.addEventListener('toggleBboxSearch', toggleBboxSearchHandler);
     window.addEventListener('hideOverlays', hideOverlaysHandler);
+    const selectedCollectionChangedHandler = (e) => {
+      try {
+        const id = e?.detail?.collectionId || null;
+        setSelectedCollectionId(id);
+      } catch (err) {
+        console.warn('Error in selectedCollectionChangedHandler:', err);
+      }
+    };
+    window.addEventListener('selectedCollectionChanged', selectedCollectionChangedHandler);
     
     // Log the current map state
     if (map) {
@@ -543,8 +633,10 @@ function SFEOSMap() {
       window.removeEventListener('showItemThumbnail', showItemThumbnailHandler);
       window.removeEventListener('showItemDetails', showItemDetailsHandler);
       window.removeEventListener('hideOverlays', hideOverlaysHandler);
+      window.removeEventListener('toggleBboxSearch', toggleBboxSearchHandler);
+      window.removeEventListener('selectedCollectionChanged', selectedCollectionChangedHandler);
     };
-  }, [isMapLoaded, handleZoomToBbox, handleShowItemsOnMap]);
+  }, [isMapLoaded, handleZoomToBbox, handleShowItemsOnMap, isDrawingBbox, clearBboxLayer]);
 
   // handleShowItemsOnMap has been moved up in the file
 
@@ -571,6 +663,64 @@ function SFEOSMap() {
         
         // Handle map load
         onLoad={handleMapLoad}
+        onMouseDown={(e) => {
+          if (!isDrawingBbox) return;
+          if (!e.lngLat) return;
+          if (e.originalEvent) {
+            e.originalEvent.preventDefault();
+            e.originalEvent.stopPropagation();
+          }
+          setDragStartLngLat({ lng: e.lngLat.lng, lat: e.lngLat.lat });
+        }}
+        onMouseMove={(e) => {
+          if (!isDrawingBbox || !dragStartLngLat) return;
+          if (!e.lngLat) return;
+          if (e.originalEvent) {
+            e.originalEvent.preventDefault();
+            e.originalEvent.stopPropagation();
+          }
+          const cur = { lng: e.lngLat.lng, lat: e.lngLat.lat };
+          const bbox = [
+            Math.min(dragStartLngLat.lng, cur.lng),
+            Math.min(dragStartLngLat.lat, cur.lat),
+            Math.max(dragStartLngLat.lng, cur.lng),
+            Math.max(dragStartLngLat.lat, cur.lat)
+          ];
+          setCurrentBbox(bbox);
+          const map = mapRef.current?.getMap();
+          if (map) addOrUpdateBboxLayer(map, bbox);
+        }}
+        onMouseUp={async (e) => {
+          if (!isDrawingBbox) return;
+          if (e && e.originalEvent) {
+            e.originalEvent.preventDefault();
+            e.originalEvent.stopPropagation();
+          }
+          setDragStartLngLat(null);
+          // Trigger GET /search?collections={id}&bbox=minLon,minLat,maxLon,maxLat
+          try {
+            const bbox = currentBbox;
+            if (!bbox || bbox.length !== 4) return;
+            if (!selectedCollectionId) {
+              console.warn('No collection selected; skipping bbox search');
+              return;
+            }
+            const bboxParam = bbox.map(n => Number(n)).join(',');
+            const limitParam = 20; // default limit; can be wired to UI limit if desired
+            const url = `${STAC_API_URL}/search?collections=${encodeURIComponent(selectedCollectionId)}&bbox=${encodeURIComponent(bboxParam)}&limit=${encodeURIComponent(limitParam)}`;
+            window.dispatchEvent(new CustomEvent('hideOverlays'));
+            const resp = await fetch(url, { method: 'GET' });
+            if (!resp.ok) throw new Error(`Search failed: ${resp.status}`);
+            const data = await resp.json();
+            const features = Array.isArray(data.features) ? data.features : [];
+            window.dispatchEvent(new CustomEvent('showItemsOnMap', { detail: { items: features } }));
+            window.dispatchEvent(new CustomEvent('zoomToBbox', { detail: { bbox } }));
+            // Optionally exit draw mode after search
+            setIsDrawingBbox(false);
+          } catch (err) {
+            console.error('Error performing bbox GET /search:', err);
+          }
+        }}
         
         // This is the full-screen styling
         style={{ width: '100%', height: '100%' }}
@@ -581,12 +731,13 @@ function SFEOSMap() {
         // Basic interaction settings
         interactive={true}
         touchZoomRotate={true}
-        dragRotate={true}
-        dragPan={true}
-        doubleClickZoom={true}
+        dragRotate={!isDrawingBbox}
+        dragPan={!isDrawingBbox}
+        doubleClickZoom={!isDrawingBbox}
         scrollZoom={true}
         boxZoom={true}
         keyboard={true}
+        cursor={isDrawingBbox ? 'crosshair' : undefined}
         
         // Performance optimizations
         reuseMaps={false}

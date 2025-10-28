@@ -311,12 +311,27 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap }) {
                 id="item-limit"
                 type="number" 
                 min="1" 
-                max="1000" 
-                value={itemLimit}
-                onChange={(e) => setItemLimit(Math.max(1, parseInt(e.target.value) || 1))}
-                onClick={(e) => e.stopPropagation()}
-                className="limit-input"
+                max="200" 
+                value={itemLimit} 
+                onChange={(e) => setItemLimit(parseInt(e.target.value || '10', 10))} 
               />
+              <span className="bbox-label">BBOX:</span>
+              <button
+                type="button"
+                className="bbox-btn"
+                title="BBox search"
+                aria-label="BBox search"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  try {
+                    window.dispatchEvent(new CustomEvent('toggleBboxSearch'));
+                  } catch (err) {
+                    console.warn('Failed to dispatch toggleBboxSearch:', err);
+                  }
+                }}
+              >
+                ▭
+              </button>
             </div>
             {queryItems.length > 0 ? (
               <ul>

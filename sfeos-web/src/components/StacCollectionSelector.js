@@ -18,6 +18,7 @@ function StacCollectionSelector({
       // Close any open overlays when changing collections
       try {
         window.dispatchEvent(new CustomEvent('hideOverlays'));
+        window.dispatchEvent(new CustomEvent('selectedCollectionChanged', { detail: { collectionId: collection.id } }));
       } catch (err) {
         console.warn('Failed to dispatch hideOverlays on collection change:', err);
       }
