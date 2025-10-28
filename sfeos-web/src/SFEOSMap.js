@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Map as MapLibreMap } from 'react-map-gl/maplibre';
 import LogoOverlay from './components/LogoOverlay';
+import ThumbnailOverlay from './components/ThumbnailOverlay';
 import MapStyleSelector from './components/MapStyleSelector';
 import StacClient from './components/StacClient';
 import './SFEOSMap.css';
@@ -19,6 +20,7 @@ function SFEOSMap() {
   });
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [thumbnail, setThumbnail] = useState({ url: null, title: '', type: null });
   
   // Refs
   const mapRef = useRef(null);
@@ -465,10 +467,24 @@ function SFEOSMap() {
         console.error('Error in showItemsOnMapHandler:', error);
       }
     };
+
+    const showItemThumbnailHandler = (event) => {
+      try {
+        const { url, title, type } = event.detail || {};
+        if (url) {
+          setThumbnail({ url, title: title || '', type: type || null });
+        } else {
+          console.warn('showItemThumbnail event missing url');
+        }
+      } catch (e) {
+        console.error('Error handling showItemThumbnail:', e);
+      }
+    };
     
     // Add event listeners
     window.addEventListener('zoomToBbox', zoomToBboxHandler);
     window.addEventListener('showItemsOnMap', showItemsOnMapHandler);
+    window.addEventListener('showItemThumbnail', showItemThumbnailHandler);
     
     // Log the current map state
     if (map) {
@@ -484,6 +500,7 @@ function SFEOSMap() {
       console.log('Cleaning up map event listeners');
       window.removeEventListener('zoomToBbox', zoomToBboxHandler);
       window.removeEventListener('showItemsOnMap', showItemsOnMapHandler);
+      window.removeEventListener('showItemThumbnail', showItemThumbnailHandler);
     };
   }, [isMapLoaded, handleZoomToBbox, handleShowItemsOnMap]);
 
@@ -556,6 +573,14 @@ function SFEOSMap() {
         </div>
       </div>
       <LogoOverlay />
+      {thumbnail.url && (
+        <ThumbnailOverlay 
+          url={thumbnail.url} 
+          title={thumbnail.title}
+          type={thumbnail.type}
+          onClose={() => setThumbnail({ url: null, title: '', type: null })}
+        />
+      )}
     </div>
   );
 }

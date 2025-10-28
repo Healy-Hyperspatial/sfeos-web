@@ -28,13 +28,65 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap }) {
             
             if (data.features && data.features.length > 0) {
               const items = data.features.slice(0, itemLimit).map(item => {
+                // Determine thumbnail URL from assets or links
+                let thumbnailUrl = null;
+                let thumbnailType = null;
+                try {
+                  const assets = item.assets || {};
+                  const assetsArr = Object.values(assets);
+
+                  // 1) Prefer explicit assets.thumbnail if it's JPEG/PNG
+                  if (assets.thumbnail && assets.thumbnail.href) {
+                    thumbnailUrl = assets.thumbnail.href;
+                    thumbnailType = assets.thumbnail.type || null;
+                  }
+
+                  // 2) Prefer any asset with role 'thumbnail' that is JPEG/PNG
+                  if (!thumbnailUrl) {
+                    const thumbAssetWeb = assetsArr.find(a => {
+                      const roles = Array.isArray(a.roles) ? a.roles : [];
+                      const type = (a.type || '').toLowerCase();
+                      return roles.includes('thumbnail') && (type.startsWith('image/jpeg') || type.startsWith('image/png'));
+                    });
+                    if (thumbAssetWeb) {
+                      thumbnailUrl = thumbAssetWeb.href;
+                      thumbnailType = thumbAssetWeb.type || null;
+                    }
+                  }
+
+                  // 3) If only TIFF thumbnail exists, use it as a last resort
+                  if (!thumbnailUrl) {
+                    const thumbAny = assetsArr.find(a => {
+                      const roles = Array.isArray(a.roles) ? a.roles : [];
+                      return roles.includes('thumbnail') && a.href;
+                    });
+                    if (thumbAny) {
+                      thumbnailUrl = thumbAny.href;
+                      thumbnailType = thumbAny.type || null;
+                    }
+                  }
+
+                  // 4) Fallback to links with rel=thumbnail or rel=preview
+                  if (!thumbnailUrl && Array.isArray(item.links)) {
+                    const link = item.links.find(l => l.rel === 'thumbnail' || l.rel === 'preview');
+                    if (link && link.href) {
+                      thumbnailUrl = link.href;
+                      thumbnailType = link.type || null;
+                    }
+                  }
+                } catch (e) {
+                  console.warn('Error extracting thumbnail from assets/links for item', item.id, e);
+                }
+
                 const itemData = {
                   id: item.id,
                   title: item.properties?.title || item.id,
                   geometry: item.geometry || null,
-                  bbox: item.bbox || null
+                  bbox: item.bbox || null,
+                  thumbnailUrl,
+                  thumbnailType
                 };
-                console.log(`Item ${itemData.id} geometry:`, itemData.geometry);
+                console.log(`Item ${itemData.id} geometry:`, itemData.geometry, 'thumbnail:', { url: thumbnailUrl, type: thumbnailType });
                 return itemData;
               });
               
@@ -174,6 +226,19 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap }) {
       console.log('Zooming to item bbox:', item.bbox);
       window.dispatchEvent(zoomEvent);
     }
+
+    // Show thumbnail overlay if available
+    if (item.thumbnailUrl) {
+      const thumbEvent = new CustomEvent('showItemThumbnail', {
+        detail: {
+          url: item.thumbnailUrl,
+          title: item.title || item.id,
+          type: item.thumbnailType || null
+        }
+      });
+      console.log('Dispatching showItemThumbnail with URL:', item.thumbnailUrl);
+      window.dispatchEvent(thumbEvent);
+    }
   };
 
   return (
@@ -256,7 +321,28 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap }) {
                       handleItemClick(item);
                     }}
                   >
-                    {item.title}
+                    <span className="item-title">{item.title}</span>
+                    <button
+                      className="preview-btn"
+                      title={item.thumbnailUrl ? 'Show thumbnail' : 'No thumbnail available'}
+                      aria-label={item.thumbnailUrl ? 'Show thumbnail' : 'No thumbnail available'}
+                      disabled={!item.thumbnailUrl}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (item.thumbnailUrl) {
+                          const thumbEvent = new CustomEvent('showItemThumbnail', {
+                            detail: {
+                              url: item.thumbnailUrl,
+                              title: item.title || item.id,
+                              type: item.thumbnailType || null
+                            }
+                          });
+                          window.dispatchEvent(thumbEvent);
+                        }
+                      }}
+                    >
+                      👁
+                    </button>
                   </li>
                 ))}
               </ul>
