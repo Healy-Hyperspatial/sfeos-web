@@ -135,7 +135,7 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap }) {
     } else {
       console.log('No collection ID available to fetch items');
     }
-  }, [collection, itemLimit]);
+  }, [collection]);
 
   // Listen for bboxModeChanged event to update button state
   useEffect(() => {
