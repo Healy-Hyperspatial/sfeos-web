@@ -15,6 +15,13 @@ function StacCollectionSelector({
     const collectionId = e.target.value;
     const collection = collections.find(c => c.id === collectionId);
     if (collection) {
+      // Close any open overlays when changing collections
+      try {
+        window.dispatchEvent(new CustomEvent('hideOverlays'));
+        window.dispatchEvent(new CustomEvent('selectedCollectionChanged', { detail: { collectionId: collection.id } }));
+      } catch (err) {
+        console.warn('Failed to dispatch hideOverlays on collection change:', err);
+      }
       onCollectionChange(collection);
     }
   };

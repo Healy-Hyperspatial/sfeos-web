@@ -3,9 +3,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Map as MapLibreMap } from 'react-map-gl/maplibre';
 import LogoOverlay from './components/LogoOverlay';
+import ThumbnailOverlay from './components/ThumbnailOverlay';
+import ItemDetailsOverlay from './components/ItemDetailsOverlay';
 import MapStyleSelector from './components/MapStyleSelector';
 import StacClient from './components/StacClient';
 import './SFEOSMap.css';
+
+const STAC_API_URL = process.env.REACT_APP_STAC_API_URL || 'http://localhost:8000';
 
 function SFEOSMap() {
   // State
@@ -19,6 +23,13 @@ function SFEOSMap() {
   });
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [thumbnail, setThumbnail] = useState({ url: null, title: '', type: null });
+  const [itemDetails, setItemDetails] = useState(null);
+  const [isDrawingBbox, setIsDrawingBbox] = useState(false);
+  const [dragStartLngLat, setDragStartLngLat] = useState(null); // {lng, lat}
+  const [currentBbox, setCurrentBbox] = useState(null); // [minLon, minLat, maxLon, maxLat]
+  const [selectedCollectionId, setSelectedCollectionId] = useState(null);
+  const [currentItemLimit, setCurrentItemLimit] = useState(10);
   
   // Refs
   const mapRef = useRef(null);
@@ -40,6 +51,67 @@ function SFEOSMap() {
     
     console.log('Map center:', map.getCenter(), 'Zoom:', map.getZoom());
     setIsMapLoaded(true);
+  }, []);
+
+  // Helpers for bbox drawing layer
+  const addOrUpdateBboxLayer = useCallback((map, bbox) => {
+    if (!bbox || bbox.length !== 4) return;
+    const [minLon, minLat, maxLon, maxLat] = bbox.map(Number);
+    const polygon = {
+      type: 'Feature',
+      geometry: {
+        type: 'Polygon',
+        coordinates: [[
+          [minLon, minLat],
+          [maxLon, minLat],
+          [maxLon, maxLat],
+          [minLon, maxLat],
+          [minLon, minLat]
+        ]]
+      }
+    };
+    const sourceId = 'bbox-draw-source';
+    const fillLayerId = 'bbox-draw-fill';
+    const lineLayerId = 'bbox-draw-line';
+    if (map.getSource(sourceId)) {
+      map.getSource(sourceId).setData({ type: 'FeatureCollection', features: [polygon] });
+    } else {
+      map.addSource(sourceId, {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [polygon] }
+      });
+      map.addLayer({
+        id: fillLayerId,
+        type: 'fill',
+        source: sourceId,
+        paint: {
+          'fill-color': '#4a90e2',
+          'fill-opacity': 0.15
+        }
+      });
+      map.addLayer({
+        id: lineLayerId,
+        type: 'line',
+        source: sourceId,
+        paint: {
+          'line-color': '#4a90e2',
+          'line-width': 2
+        }
+      });
+    }
+  }, []);
+
+  const clearBboxLayer = useCallback((map) => {
+    const sourceId = 'bbox-draw-source';
+    const fillLayerId = 'bbox-draw-fill';
+    const lineLayerId = 'bbox-draw-line';
+    try {
+      if (map.getLayer(fillLayerId)) map.removeLayer(fillLayerId);
+      if (map.getLayer(lineLayerId)) map.removeLayer(lineLayerId);
+      if (map.getSource(sourceId)) map.removeSource(sourceId);
+    } catch (e) {
+      console.warn('Error clearing bbox draw layer:', e);
+    }
   }, []);
   
   const handleStyleChange = useCallback((newStyle) => {
@@ -83,6 +155,15 @@ function SFEOSMap() {
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
+    };
+    
+    const hideOverlaysHandler = () => {
+      try {
+        setThumbnail({ url: null, title: '', type: null });
+        setItemDetails(null);
+      } catch (e) {
+        console.error('Error handling hideOverlays:', e);
+      }
     };
 
     document.addEventListener('fullscreenchange', handleFullscreenChange);
@@ -181,35 +262,33 @@ function SFEOSMap() {
   }, []);
 
   const handleShowItemsOnMap = useCallback(async (event) => {
-    console.log('=== START handleShowItemsOnMap ===');
-    console.log('Event received:', event);
-    
-    // Get the map instance directly from the ref
-    const getMapInstance = () => {
-      if (!mapRef.current) return null;
-      try {
-        const map = mapRef.current.getMap();
-        return map.loaded() ? map : null;
-      } catch (error) {
-        console.error('Error getting map instance:', error);
-        return null;
-      }
-    };
-    
-    // Get the map instance
-    const map = getMapInstance();
-    if (!map) {
-      console.error('Map not available');
-      return;
-    }
-    
-    const { items = [] } = event.detail || {};
-    if (!Array.isArray(items) || items.length === 0) {
-      console.error('❌ No valid items array provided or empty items array');
-      return;
-    }
-    
     try {
+      console.log('📍 showItemsOnMap event received with', event?.detail?.items?.length, 'items');
+      
+      // Get the map instance
+      const getMapInstance = () => {
+        if (!mapRef.current) return null;
+        try {
+          const map = mapRef.current.getMap();
+          return map.loaded() ? map : null;
+        } catch (error) {
+          console.error('Error getting map instance:', error);
+          return null;
+        }
+      };
+      
+      const map = getMapInstance();
+      if (!map) {
+        console.error('Map not available');
+        return;
+      }
+      
+      const { items = [] } = event.detail || {};
+      if (!Array.isArray(items) || items.length === 0) {
+        console.error('❌ No valid items array provided or empty items array');
+        return;
+      }
+      
       // Clear any existing geometries
       console.log('🧹 Clearing existing geometries');
       clearGeometries(map);
@@ -293,7 +372,7 @@ function SFEOSMap() {
         addGeometry(map, id, geometry, color, 2);
       });
       
-      console.log('=== END handleShowItemsOnMap ===');
+      console.log('✅ Map updated with', validGeometries.length, 'geometries');
     } catch (error) {
       console.error('Error in handleShowItemsOnMap:', error);
     }
@@ -465,10 +544,127 @@ function SFEOSMap() {
         console.error('Error in showItemsOnMapHandler:', error);
       }
     };
+
+    const showItemThumbnailHandler = (event) => {
+      try {
+        const { url, title, type } = event.detail || {};
+        if (url) {
+          setThumbnail({ url, title: title || '', type: type || null });
+          // Hide details overlay when showing thumbnail
+          setItemDetails(null);
+        } else {
+          console.warn('showItemThumbnail event missing url');
+        }
+      } catch (e) {
+        console.error('Error handling showItemThumbnail:', e);
+      }
+    };
+
+    const showItemDetailsHandler = (event) => {
+      try {
+        const d = event.detail || null;
+        if (d) {
+          setItemDetails(d);
+          // Hide thumbnail overlay when showing details
+          setThumbnail({ url: null, title: '', type: null });
+        } else {
+          console.warn('showItemDetails event missing detail');
+        }
+      } catch (e) {
+        console.error('Error handling showItemDetails:', e);
+      }
+    };
+
+    // Close all overlays
+    const hideOverlaysHandler = () => {
+      try {
+        setThumbnail({ url: null, title: '', type: null });
+        setItemDetails(null);
+      } catch (e) {
+        console.error('Error handling hideOverlays:', e);
+      }
+    };
     
     // Add event listeners
     window.addEventListener('zoomToBbox', zoomToBboxHandler);
     window.addEventListener('showItemsOnMap', showItemsOnMapHandler);
+    window.addEventListener('showItemThumbnail', showItemThumbnailHandler);
+    window.addEventListener('showItemDetails', showItemDetailsHandler);
+    const toggleBboxSearchHandler = () => {
+      const map = mapRef.current?.getMap();
+      if (!map) return;
+      const newState = !isDrawingBbox;
+      if (newState) {
+        // Enable drawing; clear previous box
+        setIsDrawingBbox(true);
+        clearBboxLayer(map);
+        setCurrentBbox(null);
+        console.log('🔲 BBox drawing ON');
+        window.dispatchEvent(new CustomEvent('bboxModeChanged', { detail: { isOn: true } }));
+      } else {
+        // Turning off drawing
+        setIsDrawingBbox(false);
+        setDragStartLngLat(null);
+        console.log('🔲 BBox drawing OFF');
+        window.dispatchEvent(new CustomEvent('bboxModeChanged', { detail: { isOn: false } }));
+      }
+    };
+    window.addEventListener('toggleBboxSearch', toggleBboxSearchHandler);
+    window.addEventListener('hideOverlays', hideOverlaysHandler);
+    const selectedCollectionChangedHandler = (e) => {
+      try {
+        const id = e?.detail?.collectionId || null;
+        setSelectedCollectionId(id);
+      } catch (err) {
+        console.warn('Error in selectedCollectionChangedHandler:', err);
+      }
+    };
+    window.addEventListener('selectedCollectionChanged', selectedCollectionChangedHandler);
+
+    const itemLimitChangedHandler = (e) => {
+      try {
+        const lim = Number(e?.detail?.limit);
+        if (Number.isFinite(lim) && lim > 0) {
+          setCurrentItemLimit(lim);
+        }
+      } catch (err) {
+        console.warn('Error in itemLimitChangedHandler:', err);
+      }
+    };
+    window.addEventListener('itemLimitChanged', itemLimitChangedHandler);
+
+    const runSearchHandler = async (e) => {
+      try {
+        console.log('🔎 runSearch triggered, detail:', e?.detail);
+        const limFromEvent = Number(e?.detail?.limit);
+        const lim = Number.isFinite(limFromEvent) && limFromEvent > 0 ? limFromEvent : 10;
+        
+        // If a bbox is drawn, search within it
+        const bbox = currentBbox;
+        if (bbox && bbox.length === 4 && selectedCollectionId) {
+          console.log('🔎 Searching within drawn bbox');
+          const bboxParam = bbox.map(n => Number(n)).join(',');
+          console.log('Search params - bbox:', bboxParam, 'limit:', lim, 'collection:', selectedCollectionId);
+          const url = `${STAC_API_URL}/search?collections=${encodeURIComponent(selectedCollectionId)}&bbox=${encodeURIComponent(bboxParam)}&limit=${encodeURIComponent(lim)}`;
+          console.log('Search URL:', url);
+          window.dispatchEvent(new CustomEvent('hideOverlays'));
+          const resp = await fetch(url, { method: 'GET' });
+          if (!resp.ok) throw new Error(`Search failed: ${resp.status}`);
+          const data = await resp.json();
+          const features = Array.isArray(data.features) ? data.features : [];
+          console.log('Search returned', features.length, 'features');
+          window.dispatchEvent(new CustomEvent('showItemsOnMap', { detail: { items: features } }));
+          window.dispatchEvent(new CustomEvent('zoomToBbox', { detail: { bbox } }));
+        } else {
+          // No bbox drawn, trigger re-fetch of query items with current limit
+          console.log('🔎 No bbox, re-fetching query items with limit:', lim);
+          window.dispatchEvent(new CustomEvent('refetchQueryItems', { detail: { limit: lim } }));
+        }
+      } catch (err) {
+        console.error('runSearch error:', err);
+      }
+    };
+    window.addEventListener('runSearch', runSearchHandler);
     
     // Log the current map state
     if (map) {
@@ -484,8 +680,15 @@ function SFEOSMap() {
       console.log('Cleaning up map event listeners');
       window.removeEventListener('zoomToBbox', zoomToBboxHandler);
       window.removeEventListener('showItemsOnMap', showItemsOnMapHandler);
+      window.removeEventListener('showItemThumbnail', showItemThumbnailHandler);
+      window.removeEventListener('showItemDetails', showItemDetailsHandler);
+      window.removeEventListener('hideOverlays', hideOverlaysHandler);
+      window.removeEventListener('toggleBboxSearch', toggleBboxSearchHandler);
+      window.removeEventListener('selectedCollectionChanged', selectedCollectionChangedHandler);
+      window.removeEventListener('itemLimitChanged', itemLimitChangedHandler);
+      window.removeEventListener('runSearch', runSearchHandler);
     };
-  }, [isMapLoaded, handleZoomToBbox, handleShowItemsOnMap]);
+  }, [isMapLoaded, handleZoomToBbox, handleShowItemsOnMap, isDrawingBbox, clearBboxLayer, currentBbox, selectedCollectionId, currentItemLimit]);
 
   // handleShowItemsOnMap has been moved up in the file
 
@@ -512,6 +715,64 @@ function SFEOSMap() {
         
         // Handle map load
         onLoad={handleMapLoad}
+        onMouseDown={(e) => {
+          if (!isDrawingBbox) return;
+          if (!e.lngLat) return;
+          if (e.originalEvent) {
+            e.originalEvent.preventDefault();
+            e.originalEvent.stopPropagation();
+          }
+          setDragStartLngLat({ lng: e.lngLat.lng, lat: e.lngLat.lat });
+        }}
+        onMouseMove={(e) => {
+          if (!isDrawingBbox || !dragStartLngLat) return;
+          if (!e.lngLat) return;
+          if (e.originalEvent) {
+            e.originalEvent.preventDefault();
+            e.originalEvent.stopPropagation();
+          }
+          const cur = { lng: e.lngLat.lng, lat: e.lngLat.lat };
+          const bbox = [
+            Math.min(dragStartLngLat.lng, cur.lng),
+            Math.min(dragStartLngLat.lat, cur.lat),
+            Math.max(dragStartLngLat.lng, cur.lng),
+            Math.max(dragStartLngLat.lat, cur.lat)
+          ];
+          setCurrentBbox(bbox);
+          const map = mapRef.current?.getMap();
+          if (map) addOrUpdateBboxLayer(map, bbox);
+        }}
+        onMouseUp={async (e) => {
+          if (!isDrawingBbox) return;
+          if (e && e.originalEvent) {
+            e.originalEvent.preventDefault();
+            e.originalEvent.stopPropagation();
+          }
+          setDragStartLngLat(null);
+          // Trigger GET /search?collections={id}&bbox=minLon,minLat,maxLon,maxLat
+          try {
+            const bbox = currentBbox;
+            if (!bbox || bbox.length !== 4) return;
+            if (!selectedCollectionId) {
+              console.warn('No collection selected; skipping bbox search');
+              return;
+            }
+            const bboxParam = bbox.map(n => Number(n)).join(',');
+            const limitParam = currentItemLimit;
+            const url = `${STAC_API_URL}/search?collections=${encodeURIComponent(selectedCollectionId)}&bbox=${encodeURIComponent(bboxParam)}&limit=${encodeURIComponent(limitParam)}`;
+            window.dispatchEvent(new CustomEvent('hideOverlays'));
+            const resp = await fetch(url, { method: 'GET' });
+            if (!resp.ok) throw new Error(`Search failed: ${resp.status}`);
+            const data = await resp.json();
+            const features = Array.isArray(data.features) ? data.features : [];
+            window.dispatchEvent(new CustomEvent('showItemsOnMap', { detail: { items: features } }));
+            window.dispatchEvent(new CustomEvent('zoomToBbox', { detail: { bbox } }));
+            // Optionally exit draw mode after search
+            setIsDrawingBbox(false);
+          } catch (err) {
+            console.error('Error performing bbox GET /search:', err);
+          }
+        }}
         
         // This is the full-screen styling
         style={{ width: '100%', height: '100%' }}
@@ -522,12 +783,13 @@ function SFEOSMap() {
         // Basic interaction settings
         interactive={true}
         touchZoomRotate={true}
-        dragRotate={true}
-        dragPan={true}
-        doubleClickZoom={true}
+        dragRotate={!isDrawingBbox}
+        dragPan={!isDrawingBbox}
+        doubleClickZoom={!isDrawingBbox}
         scrollZoom={true}
         boxZoom={true}
         keyboard={true}
+        cursor={isDrawingBbox ? 'crosshair' : undefined}
         
         // Performance optimizations
         reuseMaps={false}
@@ -556,6 +818,20 @@ function SFEOSMap() {
         </div>
       </div>
       <LogoOverlay />
+      {thumbnail.url && (
+        <ThumbnailOverlay 
+          url={thumbnail.url} 
+          title={thumbnail.title}
+          type={thumbnail.type}
+          onClose={() => setThumbnail({ url: null, title: '', type: null })}
+        />
+      )}
+      {itemDetails && (
+        <ItemDetailsOverlay 
+          details={itemDetails}
+          onClose={() => setItemDetails(null)}
+        />
+      )}
     </div>
   );
 }
