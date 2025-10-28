@@ -1,0 +1,75 @@
+.item-details-overlay {
+  position: absolute;
+  /* Place underneath the Query Items panel which starts at top: 185px and has up to ~200px height */
+  top: 525px;
+  left: 20px;
+  z-index: 1001; /* align with other left-side panels */
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+.details-card {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  width: 280px; /* match Query Items width */
+  max-width: calc(100vw - 40px);
+  border: 1px solid rgba(0,0,0,0.08);
+}
+
+.details-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.9);
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+
+.details-title {
+  font-size: 0.85rem;
+  color: #333;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-right: 8px;
+}
+
+.details-close {
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  cursor: pointer;
+  color: #333;
+}
+
+.details-body {
+  padding: 10px 12px;
+  background: #f9fafb;
+}
+
+.details-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 0.8rem;
+}
+
+.details-row .label {
+  color: #555;
+}
+
+.details-row .value {
+  color: #111;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.details-row.bbox .value {
+  white-space: normal;
+  word-break: break-word;
+}

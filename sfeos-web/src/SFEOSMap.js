@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Map as MapLibreMap } from 'react-map-gl/maplibre';
 import LogoOverlay from './components/LogoOverlay';
 import ThumbnailOverlay from './components/ThumbnailOverlay';
+import ItemDetailsOverlay from './components/ItemDetailsOverlay';
 import MapStyleSelector from './components/MapStyleSelector';
 import StacClient from './components/StacClient';
 import './SFEOSMap.css';
@@ -21,6 +22,7 @@ function SFEOSMap() {
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [thumbnail, setThumbnail] = useState({ url: null, title: '', type: null });
+  const [itemDetails, setItemDetails] = useState(null);
   
   // Refs
   const mapRef = useRef(null);
@@ -480,11 +482,25 @@ function SFEOSMap() {
         console.error('Error handling showItemThumbnail:', e);
       }
     };
+
+    const showItemDetailsHandler = (event) => {
+      try {
+        const d = event.detail || null;
+        if (d) {
+          setItemDetails(d);
+        } else {
+          console.warn('showItemDetails event missing detail');
+        }
+      } catch (e) {
+        console.error('Error handling showItemDetails:', e);
+      }
+    };
     
     // Add event listeners
     window.addEventListener('zoomToBbox', zoomToBboxHandler);
     window.addEventListener('showItemsOnMap', showItemsOnMapHandler);
     window.addEventListener('showItemThumbnail', showItemThumbnailHandler);
+    window.addEventListener('showItemDetails', showItemDetailsHandler);
     
     // Log the current map state
     if (map) {
@@ -501,6 +517,7 @@ function SFEOSMap() {
       window.removeEventListener('zoomToBbox', zoomToBboxHandler);
       window.removeEventListener('showItemsOnMap', showItemsOnMapHandler);
       window.removeEventListener('showItemThumbnail', showItemThumbnailHandler);
+      window.removeEventListener('showItemDetails', showItemDetailsHandler);
     };
   }, [isMapLoaded, handleZoomToBbox, handleShowItemsOnMap]);
 
@@ -579,6 +596,12 @@ function SFEOSMap() {
           title={thumbnail.title}
           type={thumbnail.type}
           onClose={() => setThumbnail({ url: null, title: '', type: null })}
+        />
+      )}
+      {itemDetails && (
+        <ItemDetailsOverlay 
+          details={itemDetails}
+          onClose={() => setItemDetails(null)}
         />
       )}
     </div>

@@ -84,7 +84,9 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap }) {
                   geometry: item.geometry || null,
                   bbox: item.bbox || null,
                   thumbnailUrl,
-                  thumbnailType
+                  thumbnailType,
+                  datetime: item.properties?.datetime || item.properties?.start_datetime || null,
+                  assetsCount: Object.keys(item.assets || {}).length
                 };
                 console.log(`Item ${itemData.id} geometry:`, itemData.geometry, 'thumbnail:', { url: thumbnailUrl, type: thumbnailType });
                 return itemData;
@@ -342,6 +344,26 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap }) {
                       }}
                     >
                       👁
+                    </button>
+                    <button
+                      className="details-btn"
+                      title="Show item details"
+                      aria-label="Show item details"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const detailsEvent = new CustomEvent('showItemDetails', {
+                          detail: {
+                            id: item.id,
+                            title: item.title,
+                            datetime: item.datetime || null,
+                            assetsCount: item.assetsCount || 0,
+                            bbox: item.bbox || null
+                          }
+                        });
+                        window.dispatchEvent(detailsEvent);
+                      }}
+                    >
+                      📄
                     </button>
                   </li>
                 ))}
