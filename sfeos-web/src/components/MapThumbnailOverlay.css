@@ -2,11 +2,11 @@
   position: absolute;
   transform: translate(-50%, -50%);
   z-index: 500;
-  border: 2px solid rgba(74, 144, 226, 0.8);
+  border: none;
   border-radius: 4px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
   pointer-events: none;
 }
 

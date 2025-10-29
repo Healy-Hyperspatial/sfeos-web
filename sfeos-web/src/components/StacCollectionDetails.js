@@ -421,9 +421,20 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap, sta
       setVisibleThumbnailItemId(null);
       window.dispatchEvent(new CustomEvent('hideOverlays'));
       window.dispatchEvent(new CustomEvent('hideMapThumbnail'));
+      // Show all items again
+      if (onShowItemsOnMap) {
+        console.log('Showing all query items on map');
+        onShowItemsOnMap(queryItems);
+      }
     } else {
       // Show thumbnail
       setVisibleThumbnailItemId(item.id);
+      
+      // Show only this item on the map using the callback
+      if (onShowItemsOnMap) {
+        console.log('Showing single item on map for thumbnail:', item);
+        onShowItemsOnMap([item]);
+      }
       
       // Show thumbnail overlay if available
       if (item.thumbnailUrl) {

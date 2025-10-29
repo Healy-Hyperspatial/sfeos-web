@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import './MapThumbnailOverlay.css';
 
 function MapThumbnailOverlay({ mapRef, itemGeometry, thumbnailUrl, title, type }) {
   const [mapContainer, setMapContainer] = useState(null);
+  const [pixelPos, setPixelPos] = useState(null);
 
   useEffect(() => {
     if (!mapRef?.current) return;
@@ -14,10 +15,6 @@ function MapThumbnailOverlay({ mapRef, itemGeometry, thumbnailUrl, title, type }
       console.warn('Error getting map container:', e);
     }
   }, [mapRef]);
-
-  if (!thumbnailUrl || !itemGeometry || !mapContainer) {
-    return null;
-  }
 
   // Calculate bounds from geometry
   const getBoundsFromGeometry = (geometry) => {
@@ -57,14 +54,14 @@ function MapThumbnailOverlay({ mapRef, itemGeometry, thumbnailUrl, title, type }
     return bounds;
   };
 
-  const bounds = getBoundsFromGeometry(itemGeometry);
-  if (!bounds) return null;
-
   // Get map instance and convert geographic coordinates to pixel coordinates
-  const getPixelPosition = () => {
+  const calculatePixelPosition = useCallback(() => {
     try {
       const map = mapRef.current?.getMap?.();
-      if (!map) return null;
+      if (!map || !itemGeometry) return null;
+
+      const bounds = getBoundsFromGeometry(itemGeometry);
+      if (!bounds) return null;
 
       // Calculate center of geometry
       const centerLon = (bounds.minLon + bounds.maxLon) / 2;
@@ -90,9 +87,36 @@ function MapThumbnailOverlay({ mapRef, itemGeometry, thumbnailUrl, title, type }
       console.warn('Error calculating pixel position:', e);
       return null;
     }
-  };
+  }, [mapRef, itemGeometry]);
 
-  const pixelPos = getPixelPosition();
+  // Recalculate position when map moves or geometry changes
+  useEffect(() => {
+    if (!mapRef?.current || !itemGeometry) return;
+
+    const map = mapRef.current.getMap?.();
+    if (!map) return;
+
+    const updatePosition = () => {
+      const newPos = calculatePixelPosition();
+      setPixelPos(newPos);
+    };
+
+    updatePosition();
+    
+    // Recalculate on map move/zoom
+    map.on('move', updatePosition);
+    map.on('zoom', updatePosition);
+
+    return () => {
+      map.off('move', updatePosition);
+      map.off('zoom', updatePosition);
+    };
+  }, [mapRef, itemGeometry, calculatePixelPosition]);
+
+  if (!thumbnailUrl || !itemGeometry || !mapContainer) {
+    return null;
+  }
+
   if (!pixelPos) return null;
 
   const lowerType = (type || '').toLowerCase();
