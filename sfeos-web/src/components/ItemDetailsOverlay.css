@@ -1,7 +1,7 @@
 .item-details-overlay {
   position: absolute;
   /* Place underneath the Query Items panel which starts at top: 185px and has up to ~200px height */
-  top: 525px;
+  top: 545px;
   left: 20px;
   z-index: 1001; /* align with other left-side panels */
   display: flex;

@@ -1,0 +1,51 @@
+.dark-mode-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toggle-label {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.toggle-checkbox {
+  display: none;
+}
+
+.toggle-slider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: 28px;
+  background-color: #ccc;
+  border-radius: 14px;
+  transition: background-color 0.3s ease;
+  position: relative;
+}
+
+.toggle-checkbox:checked + .toggle-slider {
+  background-color: #4a90e2;
+}
+
+.toggle-icon {
+  font-size: 16px;
+  transition: transform 0.3s ease;
+}
+
+.toggle-checkbox:checked + .toggle-slider .toggle-icon {
+  transform: translateX(0);
+}
+
+.toggle-checkbox:not(:checked) + .toggle-slider .toggle-icon {
+  transform: translateX(0);
+}
+
+/* Hover effect */
+.toggle-label:hover .toggle-slider {
+  opacity: 0.8;
+}

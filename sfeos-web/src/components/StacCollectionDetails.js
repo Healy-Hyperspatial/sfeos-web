@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import './StacCollectionDetails.css';
 import './QueryItems.css';
 
-function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap }) {
+function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap, stacApiUrl }) {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [isBoundingBoxVisible, setIsBoundingBoxVisible] = useState(false);
   const [isQueryItemsVisible, setIsQueryItemsVisible] = useState(false);
@@ -13,6 +13,16 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap }) {
   const [numberReturned, setNumberReturned] = useState(null);
   const [numberMatched, setNumberMatched] = useState(null);
   const prevCollectionId = useRef(null);
+  const stacApiUrlRef = useRef(stacApiUrl);
+  const itemLimitRef = useRef(itemLimit);
+
+  useEffect(() => {
+    stacApiUrlRef.current = stacApiUrl;
+  }, [stacApiUrl]);
+
+  useEffect(() => {
+    itemLimitRef.current = itemLimit;
+  }, [itemLimit]);
 
   // Detect collection changes and reset state
   useEffect(() => {
@@ -27,7 +37,7 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap }) {
       setIsDescriptionExpanded(false);
       setIsBoundingBoxVisible(false);
     }
-  }, [collection?.id]);
+  }, [collection, stacApiUrl]);
 
   // Fetch query items when the component mounts or collection changes
   useEffect(() => {
@@ -36,8 +46,9 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap }) {
       // Fetch items from the collection using STAC API
       const fetchItems = async () => {
         try {
-          const baseUrl = process.env.REACT_APP_STAC_API_BASE_URL || 'http://localhost:8080';
-          const url = `${baseUrl}/collections/${collection.id}/items?limit=${itemLimit}`;
+          const baseUrl = stacApiUrlRef.current || process.env.REACT_APP_STAC_API_BASE_URL || 'http://localhost:8080';
+          const currentLimit = itemLimitRef.current;
+          const url = `${baseUrl}/collections/${collection.id}/items?limit=${currentLimit}`;
           console.log(`Fetching items from: ${url}`);
           
           const response = await fetch(url);
@@ -50,7 +61,8 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap }) {
             setNumberMatched(data.numberMatched || data.features?.length || 0);
             
             if (data.features && data.features.length > 0) {
-              const items = data.features.slice(0, itemLimit).map(item => {
+              const limit = itemLimitRef.current;
+              const items = data.features.slice(0, limit).map(item => {
                 // Determine thumbnail URL from assets or links
                 let thumbnailUrl = null;
                 let thumbnailType = null;
@@ -135,7 +147,7 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap }) {
     } else {
       console.log('No collection ID available to fetch items');
     }
-  }, [collection, itemLimit]);
+  }, [collection]);
 
   // Listen for bboxModeChanged event to update button state
   useEffect(() => {
@@ -147,6 +159,21 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap }) {
     return () => window.removeEventListener('bboxModeChanged', handler);
   }, []);
 
+  // Listen for resetStacCollectionDetails event to reset state
+  useEffect(() => {
+    const handler = () => {
+      console.log('🔄 Resetting StacCollectionDetails');
+      setIsQueryItemsVisible(false);
+      setQueryItems([]);
+      setSelectedItemId(null);
+      setNumberReturned(null);
+      setNumberMatched(null);
+      setItemLimit(10);
+    };
+    window.addEventListener('resetStacCollectionDetails', handler);
+    return () => window.removeEventListener('resetStacCollectionDetails', handler);
+  }, []);
+
   // Listen for refetchQueryItems event to re-fetch with new limit
   useEffect(() => {
     const handler = async (event) => {
@@ -156,7 +183,7 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap }) {
         if (!collection || !collection.id) return;
         
         console.log('🔎 refetchQueryItems triggered with limit:', lim);
-        const baseUrl = process.env.REACT_APP_STAC_API_BASE_URL || 'http://localhost:8080';
+        const baseUrl = stacApiUrlRef.current || process.env.REACT_APP_STAC_API_BASE_URL || 'http://localhost:8080';
         const url = `${baseUrl}/collections/${collection.id}/items?limit=${lim}`;
         console.log('Fetching from:', url);
         

@@ -1,6 +1,6 @@
 .thumbnail-overlay {
   position: absolute;
-  top: 525px; /* align with ItemDetailsOverlay position under Query Items */
+  top: 545px; /* align with ItemDetailsOverlay position under Query Items */
   left: 20px;
   z-index: 1001;
   display: flex;
