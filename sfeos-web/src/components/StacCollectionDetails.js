@@ -382,10 +382,12 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap, sta
     // Close any open overlays when selecting an item
     try {
       window.dispatchEvent(new CustomEvent('hideOverlays'));
+      window.dispatchEvent(new CustomEvent('hideMapThumbnail'));
     } catch (err) {
       console.warn('Failed to dispatch hideOverlays on item click:', err);
     }
     setSelectedItemId(item.id);
+    setVisibleThumbnailItemId(null);
     
     // Show only this item on the map
     if (onShowItemsOnMap) {
@@ -393,14 +395,14 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap, sta
       onShowItemsOnMap([item]);
     }
     
-    // Zoom to the item's bbox if available
+    // Zoom to the item's bbox if available with better zoom level
     if (item.bbox) {
       const zoomEvent = new CustomEvent('zoomToBbox', { 
         detail: { 
           bbox: item.bbox,
           options: {
             padding: 50,
-            maxZoom: 14,
+            maxZoom: 18,
             essential: true
           }
         } 

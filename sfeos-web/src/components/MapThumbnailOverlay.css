@@ -7,7 +7,7 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   overflow: hidden;
   background: rgba(255, 255, 255, 0.1);
-  pointer-events: auto;
+  pointer-events: none;
 }
 
 .map-thumbnail-image {
