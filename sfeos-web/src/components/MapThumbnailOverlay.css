@@ -1,0 +1,31 @@
+.map-thumbnail-overlay {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  z-index: 500;
+  border: 2px solid rgba(74, 144, 226, 0.8);
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.1);
+  pointer-events: auto;
+}
+
+.map-thumbnail-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.map-thumbnail-unsupported {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(200, 200, 200, 0.5);
+  color: #333;
+  font-size: 12px;
+  text-align: center;
+  padding: 8px;
+}

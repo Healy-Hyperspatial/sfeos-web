@@ -12,6 +12,7 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap, sta
   const [isBboxModeOn, setIsBboxModeOn] = useState(false);
   const [numberReturned, setNumberReturned] = useState(null);
   const [numberMatched, setNumberMatched] = useState(null);
+  const [visibleThumbnailItemId, setVisibleThumbnailItemId] = useState(null);
   const prevCollectionId = useRef(null);
   const stacApiUrlRef = useRef(stacApiUrl);
   const itemLimitRef = useRef(itemLimit);
@@ -407,18 +408,47 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap, sta
       console.log('Zooming to item bbox:', item.bbox);
       window.dispatchEvent(zoomEvent);
     }
+  };
 
-    // Show thumbnail overlay if available
-    if (item.thumbnailUrl) {
-      const thumbEvent = new CustomEvent('showItemThumbnail', {
-        detail: {
-          url: item.thumbnailUrl,
-          title: item.title || item.id,
-          type: item.thumbnailType || null
-        }
-      });
-      console.log('Dispatching showItemThumbnail with URL:', item.thumbnailUrl);
-      window.dispatchEvent(thumbEvent);
+  const handleEyeButtonClick = (e, item) => {
+    e.stopPropagation();
+    
+    // Toggle thumbnail visibility for this item
+    if (visibleThumbnailItemId === item.id) {
+      // Hide thumbnail
+      setVisibleThumbnailItemId(null);
+      window.dispatchEvent(new CustomEvent('hideOverlays'));
+      window.dispatchEvent(new CustomEvent('hideMapThumbnail'));
+    } else {
+      // Show thumbnail
+      setVisibleThumbnailItemId(item.id);
+      
+      // Show thumbnail overlay if available
+      if (item.thumbnailUrl) {
+        const thumbEvent = new CustomEvent('showItemThumbnail', {
+          detail: {
+            url: item.thumbnailUrl,
+            title: item.title || item.id,
+            type: item.thumbnailType || null
+          }
+        });
+        console.log('Dispatching showItemThumbnail with URL:', item.thumbnailUrl);
+        window.dispatchEvent(thumbEvent);
+      }
+
+      // Show thumbnail on map if available and has geometry
+      if (item.thumbnailUrl && item.geometry) {
+        const mapThumbEvent = new CustomEvent('showMapThumbnail', {
+          detail: {
+            geometry: item.geometry,
+            url: item.thumbnailUrl,
+            title: item.title || item.id,
+            type: item.thumbnailType || null
+          }
+        });
+        console.log('Dispatching showMapThumbnail with geometry:', item.geometry);
+        window.dispatchEvent(mapThumbEvent);
+      }
     }
   };
 
@@ -565,23 +595,11 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap, sta
                   >
                     <span className="item-title">{item.title}</span>
                     <button
-                      className="preview-btn"
-                      title={item.thumbnailUrl ? 'Show thumbnail' : 'No thumbnail available'}
-                      aria-label={item.thumbnailUrl ? 'Show thumbnail' : 'No thumbnail available'}
+                      className={`preview-btn ${visibleThumbnailItemId === item.id ? 'active' : ''}`}
+                      title={item.thumbnailUrl ? (visibleThumbnailItemId === item.id ? 'Hide thumbnail' : 'Show thumbnail') : 'No thumbnail available'}
+                      aria-label={item.thumbnailUrl ? (visibleThumbnailItemId === item.id ? 'Hide thumbnail' : 'Show thumbnail') : 'No thumbnail available'}
                       disabled={!item.thumbnailUrl}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (item.thumbnailUrl) {
-                          const thumbEvent = new CustomEvent('showItemThumbnail', {
-                            detail: {
-                              url: item.thumbnailUrl,
-                              title: item.title || item.id,
-                              type: item.thumbnailType || null
-                            }
-                          });
-                          window.dispatchEvent(thumbEvent);
-                        }
-                      }}
+                      onClick={(e) => handleEyeButtonClick(e, item)}
                     >
                       👁
                     </button>

@@ -9,6 +9,7 @@ import MapStyleSelector from './components/MapStyleSelector';
 import DarkModeToggle from './components/DarkModeToggle';
 import StacClient from './components/StacClient';
 import UrlSearchBox from './components/UrlSearchBox';
+import MapThumbnailOverlay from './components/MapThumbnailOverlay';
 import './SFEOSMap.css';
 
 const getInitialStacApiUrl = () => {
@@ -47,6 +48,7 @@ function SFEOSMap() {
   const [selectedCollectionId, setSelectedCollectionId] = useState(null);
   const [currentItemLimit, setCurrentItemLimit] = useState(10);
   const [stacApiUrl, setStacApiUrl] = useState(getInitialStacApiUrl);
+  const [mapThumbnail, setMapThumbnail] = useState({ geometry: null, url: null, title: '', type: null });
   
   // Refs
   const mapRef = useRef(null);
@@ -610,6 +612,27 @@ function SFEOSMap() {
       }
     };
 
+    const showMapThumbnailHandler = (event) => {
+      try {
+        const { geometry, url, title, type } = event.detail || {};
+        if (url && geometry) {
+          setMapThumbnail({ geometry, url, title: title || '', type: type || null });
+        } else {
+          console.warn('showMapThumbnail event missing url or geometry');
+        }
+      } catch (e) {
+        console.error('Error handling showMapThumbnail:', e);
+      }
+    };
+
+    const hideMapThumbnailHandler = () => {
+      try {
+        setMapThumbnail({ geometry: null, url: null, title: '', type: null });
+      } catch (e) {
+        console.error('Error handling hideMapThumbnail:', e);
+      }
+    };
+
     const showItemDetailsHandler = (event) => {
       try {
         const d = event.detail || null;
@@ -639,6 +662,8 @@ function SFEOSMap() {
     window.addEventListener('zoomToBbox', zoomToBboxHandler);
     window.addEventListener('showItemsOnMap', showItemsOnMapHandler);
     window.addEventListener('showItemThumbnail', showItemThumbnailHandler);
+    window.addEventListener('showMapThumbnail', showMapThumbnailHandler);
+    window.addEventListener('hideMapThumbnail', hideMapThumbnailHandler);
     window.addEventListener('showItemDetails', showItemDetailsHandler);
     const toggleBboxSearchHandler = () => {
       const map = mapRef.current?.getMap();
@@ -732,6 +757,8 @@ function SFEOSMap() {
       window.removeEventListener('zoomToBbox', zoomToBboxHandler);
       window.removeEventListener('showItemsOnMap', showItemsOnMapHandler);
       window.removeEventListener('showItemThumbnail', showItemThumbnailHandler);
+      window.removeEventListener('showMapThumbnail', showMapThumbnailHandler);
+      window.removeEventListener('hideMapThumbnail', hideMapThumbnailHandler);
       window.removeEventListener('showItemDetails', showItemDetailsHandler);
       window.removeEventListener('hideOverlays', hideOverlaysHandler);
       window.removeEventListener('toggleBboxSearch', toggleBboxSearchHandler);
@@ -893,6 +920,15 @@ function SFEOSMap() {
           title={thumbnail.title}
           type={thumbnail.type}
           onClose={() => setThumbnail({ url: null, title: '', type: null })}
+        />
+      )}
+      {mapThumbnail.url && (
+        <MapThumbnailOverlay
+          mapRef={mapRef}
+          itemGeometry={mapThumbnail.geometry}
+          thumbnailUrl={mapThumbnail.url}
+          title={mapThumbnail.title}
+          type={mapThumbnail.type}
         />
       )}
       {itemDetails && (
