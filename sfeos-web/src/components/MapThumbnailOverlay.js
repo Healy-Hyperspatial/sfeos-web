@@ -80,8 +80,8 @@ function MapThumbnailOverlay({ mapRef, itemGeometry, thumbnailUrl, title, type }
       return {
         x: point.x,
         y: point.y,
-        width: Math.max(width, 100), // minimum width
-        height: Math.max(height, 100) // minimum height
+        width: Math.max(width, 1), // minimum 1px to avoid rendering issues
+        height: Math.max(height, 1) // minimum 1px to avoid rendering issues
       };
     } catch (e) {
       console.warn('Error calculating pixel position:', e);

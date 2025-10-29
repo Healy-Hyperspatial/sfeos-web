@@ -430,11 +430,12 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap, sta
       // Show thumbnail
       setVisibleThumbnailItemId(item.id);
       
-      // Show only this item on the map using the callback
-      if (onShowItemsOnMap) {
-        console.log('Showing single item on map for thumbnail:', item);
-        onShowItemsOnMap([item]);
-      }
+      // Hide item geometries on the map by dispatching empty items event
+      const hideGeometriesEvent = new CustomEvent('showItemsOnMap', {
+        detail: { items: [] }
+      });
+      console.log('Hiding item geometries for thumbnail overlay');
+      window.dispatchEvent(hideGeometriesEvent);
       
       // Show thumbnail overlay if available
       if (item.thumbnailUrl) {

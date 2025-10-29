@@ -336,14 +336,15 @@ function SFEOSMap() {
       }
       
       const { items = [] } = event.detail || {};
-      if (!Array.isArray(items) || items.length === 0) {
-        console.error('❌ No valid items array provided or empty items array');
-        return;
-      }
       
       // Clear any existing geometries
       console.log('🧹 Clearing existing geometries');
       clearGeometries(map);
+      
+      if (!Array.isArray(items) || items.length === 0) {
+        console.log('❌ No valid items array provided or empty items array - geometries cleared');
+        return;
+      }
       
       // Process items and add their geometries
       const validGeometries = items
