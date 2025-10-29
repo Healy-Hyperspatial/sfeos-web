@@ -21,6 +21,12 @@ const getInitialStacApiUrl = () => {
   return process.env.REACT_APP_STAC_API_URL || 'http://localhost:8000';
 };
 
+const DEFAULT_VIEW_STATE = {
+  longitude: 28.9784,
+  latitude: 41.0151,
+  zoom: 12
+};
+
 function SFEOSMap() {
   // State
   const [mapStyle, setMapStyle] = useState(
@@ -270,6 +276,40 @@ function SFEOSMap() {
     
     bboxLayers.current.clear();
   }, []);
+
+  const resetToInitialState = useCallback(() => {
+    console.log('🔄 Resetting map to initial state');
+    setViewState({ ...DEFAULT_VIEW_STATE });
+    setThumbnail({ url: null, title: '', type: null });
+    setItemDetails(null);
+    setIsDrawingBbox(false);
+    setDragStartLngLat(null);
+    setCurrentBbox(null);
+    setSelectedCollectionId(null);
+    setCurrentItemLimit(10);
+
+    try {
+      window.dispatchEvent(new CustomEvent('hideOverlays'));
+      window.dispatchEvent(new CustomEvent('resetStacCollectionDetails'));
+    } catch (err) {
+      console.warn('Failed to dispatch reset events:', err);
+    }
+
+    const map = mapRef.current?.getMap();
+    if (map) {
+      try {
+        clearGeometries(map);
+        clearBboxLayer(map);
+        map.jumpTo({
+          center: [DEFAULT_VIEW_STATE.longitude, DEFAULT_VIEW_STATE.latitude],
+          zoom: DEFAULT_VIEW_STATE.zoom
+        });
+        console.log('✅ Map reset to initial view');
+      } catch (err) {
+        console.warn('Failed to reset map view:', err);
+      }
+    }
+  }, [clearGeometries, clearBboxLayer]);
 
   const handleShowItemsOnMap = useCallback(async (event) => {
     try {
@@ -855,8 +895,15 @@ function SFEOSMap() {
       <UrlSearchBox
         initialUrl={stacApiUrl}
         onUpdate={(newUrl) => {
-          stacApiUrlRef.current = newUrl;
-          setStacApiUrl(newUrl);
+          const trimmed = (newUrl || '').trim();
+          if (!trimmed) {
+            console.warn('Empty URL provided');
+            return;
+          }
+
+          stacApiUrlRef.current = trimmed;
+          setStacApiUrl(trimmed);
+          resetToInitialState();
         }}
       />
     </div>

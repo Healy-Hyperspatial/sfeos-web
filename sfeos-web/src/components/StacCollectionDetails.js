@@ -159,6 +159,21 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap, sta
     return () => window.removeEventListener('bboxModeChanged', handler);
   }, []);
 
+  // Listen for resetStacCollectionDetails event to reset state
+  useEffect(() => {
+    const handler = () => {
+      console.log('🔄 Resetting StacCollectionDetails');
+      setIsQueryItemsVisible(false);
+      setQueryItems([]);
+      setSelectedItemId(null);
+      setNumberReturned(null);
+      setNumberMatched(null);
+      setItemLimit(10);
+    };
+    window.addEventListener('resetStacCollectionDetails', handler);
+    return () => window.removeEventListener('resetStacCollectionDetails', handler);
+  }, []);
+
   // Listen for refetchQueryItems event to re-fetch with new limit
   useEffect(() => {
     const handler = async (event) => {
