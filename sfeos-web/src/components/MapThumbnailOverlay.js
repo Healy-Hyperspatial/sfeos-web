@@ -4,6 +4,9 @@ import './MapThumbnailOverlay.css';
 function MapThumbnailOverlay({ mapRef, itemGeometry, thumbnailUrl, title, type }) {
   const [mapContainer, setMapContainer] = useState(null);
   const [pixelPos, setPixelPos] = useState(null);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
+  const [imageVerified, setImageVerified] = useState(false);
 
   useEffect(() => {
     if (!mapRef?.current) return;
@@ -15,6 +18,41 @@ function MapThumbnailOverlay({ mapRef, itemGeometry, thumbnailUrl, title, type }
       console.warn('Error getting map container:', e);
     }
   }, [mapRef]);
+
+  // Preload image to verify it can be loaded before rendering overlay
+  useEffect(() => {
+    if (!thumbnailUrl) {
+      setImageVerified(false);
+      return;
+    }
+
+    const lowerType = (type || '').toLowerCase();
+    const isWebImage = lowerType.startsWith('image/jpeg') || lowerType.startsWith('image/png') || /\.(jpg|jpeg|png)(\?|$)/i.test(thumbnailUrl);
+
+    if (!isWebImage) {
+      setImageVerified(false);
+      return;
+    }
+
+    // Preload the image
+    const img = new Image();
+    img.onload = () => {
+      console.log('Image preload successful:', thumbnailUrl);
+      setImageVerified(true);
+      setImageError(false);
+    };
+    img.onerror = () => {
+      console.warn('Image preload failed:', thumbnailUrl);
+      setImageError(true);
+      setImageVerified(false);
+    };
+    img.src = thumbnailUrl;
+
+    return () => {
+      img.onload = null;
+      img.onerror = null;
+    };
+  }, [thumbnailUrl, type]);
 
   // Calculate bounds from geometry
   const getBoundsFromGeometry = (geometry) => {
@@ -70,12 +108,21 @@ function MapThumbnailOverlay({ mapRef, itemGeometry, thumbnailUrl, title, type }
       // Convert to pixel coordinates
       const point = map.project([centerLon, centerLat]);
       
-      // Calculate size based on geometry extent
+      // Calculate size based on geometry extent using all four corners for better accuracy
       const topLeftPoint = map.project([bounds.minLon, bounds.maxLat]);
+      const topRightPoint = map.project([bounds.maxLon, bounds.maxLat]);
+      const bottomLeftPoint = map.project([bounds.minLon, bounds.minLat]);
       const bottomRightPoint = map.project([bounds.maxLon, bounds.minLat]);
 
-      const width = Math.abs(bottomRightPoint.x - topLeftPoint.x);
-      const height = Math.abs(bottomRightPoint.y - topLeftPoint.y);
+      // Calculate width and height from the projected corners
+      const width = Math.max(
+        Math.abs(topRightPoint.x - topLeftPoint.x),
+        Math.abs(bottomRightPoint.x - bottomLeftPoint.x)
+      );
+      const height = Math.max(
+        Math.abs(bottomLeftPoint.y - topLeftPoint.y),
+        Math.abs(bottomRightPoint.y - topRightPoint.y)
+      );
 
       return {
         x: point.x,
@@ -119,6 +166,11 @@ function MapThumbnailOverlay({ mapRef, itemGeometry, thumbnailUrl, title, type }
 
   if (!pixelPos) return null;
 
+  // Don't render if image failed to load or hasn't been verified yet
+  if (imageError || !imageVerified) {
+    return null;
+  }
+
   const lowerType = (type || '').toLowerCase();
   const isWebImage = lowerType.startsWith('image/jpeg') || lowerType.startsWith('image/png') || /\.(jpg|jpeg|png)(\?|$)/i.test(thumbnailUrl);
 
@@ -137,6 +189,14 @@ function MapThumbnailOverlay({ mapRef, itemGeometry, thumbnailUrl, title, type }
           src={thumbnailUrl}
           alt={title || 'Item thumbnail'}
           className="map-thumbnail-image"
+          onLoad={() => {
+            console.log('Image loaded successfully:', thumbnailUrl);
+            setImageLoaded(true);
+          }}
+          onError={() => {
+            console.warn('Failed to load image:', thumbnailUrl);
+            setImageError(true);
+          }}
         />
       ) : (
         <div className="map-thumbnail-unsupported">

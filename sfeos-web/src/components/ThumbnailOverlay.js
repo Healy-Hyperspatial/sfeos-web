@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import './ThumbnailOverlay.css';
 
 function ThumbnailOverlay({ url, title, type, onClose }) {
+  const [imageError, setImageError] = useState(false);
+
   if (!url) return null;
 
   const lowerType = (type || '').toLowerCase();
@@ -16,7 +18,19 @@ function ThumbnailOverlay({ url, title, type, onClose }) {
         </div>
         <div className="thumbnail-body">
           {isWebImage ? (
-            <img src={url} alt={title || 'Item thumbnail'} className="thumbnail-image" />
+            imageError ? (
+              <div className="thumbnail-error">
+                <div className="thumbnail-note">Unable to load image. The image may require authentication or be unavailable.</div>
+                <a href={url} target="_blank" rel="noreferrer" className="thumbnail-download-btn">Try Opening/Downloading</a>
+              </div>
+            ) : (
+              <img 
+                src={url} 
+                alt={title || 'Item thumbnail'} 
+                className="thumbnail-image"
+                onError={() => setImageError(true)}
+              />
+            )
           ) : (
             <div>
               <div className="thumbnail-note">This app doesn't support inline preview for this image type yet{type ? ` (${type})` : ''}.</div>
