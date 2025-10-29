@@ -875,6 +875,16 @@ function SFEOSMap() {
             onStyleChange={handleStyleChange}
           />
         </div>
+        <div className="control-section">
+          <div className="control-label">API Server</div>
+          <button 
+            className="url-toggle-btn"
+            onClick={() => window.dispatchEvent(new CustomEvent('toggleUrlBox'))}
+            title="Toggle URL box"
+          >
+            🔗
+          </button>
+        </div>
       </div>
       <LogoOverlay />
       {thumbnail.url && (
@@ -891,7 +901,6 @@ function SFEOSMap() {
           onClose={() => setItemDetails(null)}
         />
       )}
-
       <UrlSearchBox
         initialUrl={stacApiUrl}
         onUpdate={(newUrl) => {
