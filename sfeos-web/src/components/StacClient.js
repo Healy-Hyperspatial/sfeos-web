@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import StacCollectionSelector from './StacCollectionSelector';
 
-const STAC_API_URL = process.env.REACT_APP_STAC_API_URL || 'http://localhost:8000';
+const getDefaultStacApiUrl = () =>
+  process.env.REACT_APP_STAC_API_URL || 'http://localhost:8000';
 
-function StacClient({ onShowItemsOnMap: propOnShowItemsOnMap }) {
+function StacClient({ stacApiUrl, onShowItemsOnMap: propOnShowItemsOnMap }) {
   const [collections, setCollections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -14,12 +15,13 @@ function StacClient({ onShowItemsOnMap: propOnShowItemsOnMap }) {
       try {
         setLoading(true);
         setError(null);
-        
-        const response = await fetch(`${STAC_API_URL}/collections`);
+
+        const baseUrl = stacApiUrl || getDefaultStacApiUrl();
+        const response = await fetch(`${baseUrl}/collections`);
         if (!response.ok) {
           throw new Error(`Failed to fetch collections: ${response.status}`);
         }
-        
+
         const data = await response.json();
         const collectionsList = Array.isArray(data.collections) ? data.collections : [];
         setCollections(collectionsList);
@@ -37,7 +39,7 @@ function StacClient({ onShowItemsOnMap: propOnShowItemsOnMap }) {
     };
 
     fetchCollections();
-  }, []);
+  }, [stacApiUrl]);
 
   const handleCollectionChange = (collection) => {
     setSelectedCollection(collection);
@@ -79,6 +81,7 @@ function StacClient({ onShowItemsOnMap: propOnShowItemsOnMap }) {
       onCollectionChange={handleCollectionChange}
       onZoomToBbox={handleZoomToBbox}
       onShowItemsOnMap={handleShowItemsOnMap}
+      stacApiUrl={stacApiUrl}
     />
   );
 }

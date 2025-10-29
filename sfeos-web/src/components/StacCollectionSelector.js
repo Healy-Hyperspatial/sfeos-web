@@ -9,7 +9,8 @@ function StacCollectionSelector({
   selectedCollection,
   onCollectionChange,
   onZoomToBbox,
-  onShowItemsOnMap
+  onShowItemsOnMap,
+  stacApiUrl
 }) {
   const handleChange = (e) => {
     const collectionId = e.target.value;
@@ -58,6 +59,7 @@ function StacCollectionSelector({
           collection={selectedCollection}
           onZoomToBbox={onZoomToBbox}
           onShowItemsOnMap={onShowItemsOnMap}
+          stacApiUrl={stacApiUrl}
         />
       )}
     </div>

@@ -8,9 +8,18 @@ import ItemDetailsOverlay from './components/ItemDetailsOverlay';
 import MapStyleSelector from './components/MapStyleSelector';
 import DarkModeToggle from './components/DarkModeToggle';
 import StacClient from './components/StacClient';
+import UrlSearchBox from './components/UrlSearchBox';
 import './SFEOSMap.css';
 
-const STAC_API_URL = process.env.REACT_APP_STAC_API_URL || 'http://localhost:8000';
+const getInitialStacApiUrl = () => {
+  if (typeof window !== 'undefined') {
+    const stored = window.localStorage.getItem('stacApiUrl');
+    if (stored) {
+      return stored;
+    }
+  }
+  return process.env.REACT_APP_STAC_API_URL || 'http://localhost:8000';
+};
 
 function SFEOSMap() {
   // State
@@ -31,11 +40,20 @@ function SFEOSMap() {
   const [currentBbox, setCurrentBbox] = useState(null); // [minLon, minLat, maxLon, maxLat]
   const [selectedCollectionId, setSelectedCollectionId] = useState(null);
   const [currentItemLimit, setCurrentItemLimit] = useState(10);
+  const [stacApiUrl, setStacApiUrl] = useState(getInitialStacApiUrl);
   
   // Refs
   const mapRef = useRef(null);
   const containerRef = useRef(null);
   const bboxLayers = useRef(new Set()); // Track bounding box layer IDs
+  const stacApiUrlRef = useRef(stacApiUrl);
+
+  useEffect(() => {
+    stacApiUrlRef.current = stacApiUrl;
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('stacApiUrl', stacApiUrl);
+    }
+  }, [stacApiUrl]);
   
   // Event Handlers
   const handleMapLoad = useCallback((e) => {
@@ -637,7 +655,8 @@ function SFEOSMap() {
           console.log('🔎 Searching within drawn bbox');
           const bboxParam = bbox.map(n => Number(n)).join(',');
           console.log('Search params - bbox:', bboxParam, 'limit:', lim, 'collection:', selectedCollectionId);
-          const url = `${STAC_API_URL}/search?collections=${encodeURIComponent(selectedCollectionId)}&bbox=${encodeURIComponent(bboxParam)}&limit=${encodeURIComponent(lim)}`;
+          const baseUrl = stacApiUrlRef.current;
+          const url = `${baseUrl}/search?collections=${encodeURIComponent(selectedCollectionId)}&bbox=${encodeURIComponent(bboxParam)}&limit=${encodeURIComponent(lim)}`;
           console.log('Search URL:', url);
           window.dispatchEvent(new CustomEvent('hideOverlays'));
           const resp = await fetch(url, { method: 'GET' });
@@ -751,7 +770,8 @@ function SFEOSMap() {
             }
             const bboxParam = bbox.map(n => Number(n)).join(',');
             const limitParam = currentItemLimit;
-            const url = `${STAC_API_URL}/search?collections=${encodeURIComponent(selectedCollectionId)}&bbox=${encodeURIComponent(bboxParam)}&limit=${encodeURIComponent(limitParam)}`;
+            const baseUrl = stacApiUrlRef.current;
+            const url = `${baseUrl}/search?collections=${encodeURIComponent(selectedCollectionId)}&bbox=${encodeURIComponent(bboxParam)}&limit=${encodeURIComponent(limitParam)}`;
             window.dispatchEvent(new CustomEvent('hideOverlays'));
             const resp = await fetch(url, { method: 'GET' });
             if (!resp.ok) throw new Error(`Search failed: ${resp.status}`);
@@ -789,7 +809,7 @@ function SFEOSMap() {
           return { url };
         }}
       />
-      <StacClient />
+      <StacClient stacApiUrl={stacApiUrl} />
       <div className="map-controls">
         <div className="control-section">
           <div className="control-label">View</div>
@@ -831,6 +851,14 @@ function SFEOSMap() {
           onClose={() => setItemDetails(null)}
         />
       )}
+
+      <UrlSearchBox
+        initialUrl={stacApiUrl}
+        onUpdate={(newUrl) => {
+          stacApiUrlRef.current = newUrl;
+          setStacApiUrl(newUrl);
+        }}
+      />
     </div>
   );
 }
