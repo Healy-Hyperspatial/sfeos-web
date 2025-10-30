@@ -335,6 +335,18 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap, sta
     }
   };
 
+  const handleTemporalExtentClick = () => {
+    setIsTemporalExtentVisible(!isTemporalExtentVisible);
+    if (isDescriptionExpanded) {
+      setIsDescriptionExpanded(false);
+    }
+    if (isBoundingBoxVisible) {
+      setIsBoundingBoxVisible(false);
+    }
+    if (isQueryItemsVisible) {
+      setIsQueryItemsVisible(false);
+    }
+  };
 
   const handleQueryItemsClick = () => {
     const newIsExpanded = !isQueryItemsVisible;
@@ -486,18 +498,35 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap, sta
   return (
     <>
       {hasValidTemporalExtent && (
-        <div className="temporal-extent-display">
-          <div className="temporal-extent-label">Temporal Range</div>
-          <div className="temporal-extent-content">
-            <div className="temporal-extent-item">
-              <span className="temporal-extent-key">Start:</span>
-              <span className="temporal-extent-value">{new Date(startTime).toLocaleString()}</span>
+        <div className="temporal-extent" onClick={handleTemporalExtentClick}>
+          <button 
+            className="stac-expand-btn"
+            title={isTemporalExtentVisible ? "Hide temporal extent" : "Show temporal extent"}
+          >
+            <span className="expand-arrow">{isTemporalExtentVisible ? '◀' : '▶'}</span>
+            <span className="expand-label">
+              Temporal Range
+              {startTime && endTime && (
+                <span className="temporal-range-bracket">
+                  ({new Date(startTime).toLocaleDateString()} / {new Date(endTime).toLocaleDateString()})
+                </span>
+              )}
+            </span>
+          </button>
+          {isTemporalExtentVisible && (
+            <div className="stac-details-expanded temporal-extent-expanded">
+              <div className="temporal-extent-content">
+                <div className="temporal-extent-item">
+                  <span className="temporal-extent-key">Start:</span>
+                  <span className="temporal-extent-value">{new Date(startTime).toLocaleString()}</span>
+                </div>
+                <div className="temporal-extent-item">
+                  <span className="temporal-extent-key">End:</span>
+                  <span className="temporal-extent-value">{new Date(endTime).toLocaleString()}</span>
+                </div>
+              </div>
             </div>
-            <div className="temporal-extent-item">
-              <span className="temporal-extent-key">End:</span>
-              <span className="temporal-extent-value">{new Date(endTime).toLocaleString()}</span>
-            </div>
-          </div>
+          )}
         </div>
       )}
       
