@@ -13,6 +13,9 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap, sta
   const [numberReturned, setNumberReturned] = useState(null);
   const [numberMatched, setNumberMatched] = useState(null);
   const [visibleThumbnailItemId, setVisibleThumbnailItemId] = useState(null);
+  const [isDatetimePickerOpen, setIsDatetimePickerOpen] = useState(false);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const prevCollectionId = useRef(null);
   const stacApiUrlRef = useRef(stacApiUrl);
   const itemLimitRef = useRef(itemLimit);
@@ -595,6 +598,18 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap, sta
               >
                 BBOX: {isBboxModeOn ? 'ON' : 'OFF'}
               </button>
+              <button
+                type="button"
+                className="datetime-btn"
+                title="Filter by datetime"
+                aria-label="Filter by datetime"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsDatetimePickerOpen(!isDatetimePickerOpen);
+                }}
+              >
+                📅
+              </button>
             </div>
             {(() => { console.log('Rendering Query Items list with', queryItems.length, 'items'); return queryItems.length > 0; })() ? (
               <ul>
@@ -646,6 +661,64 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap, sta
           </div>
         )}
       </div>
+      {isDatetimePickerOpen && (
+        <div className="datetime-filter-box">
+          <div className="datetime-filter-header">
+            <h3>Filter by Date</h3>
+            <button 
+              className="datetime-filter-close"
+              onClick={() => setIsDatetimePickerOpen(false)}
+              aria-label="Close datetime filter"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="datetime-filter-content">
+            <div className="datetime-filter-group">
+              <label htmlFor="start-date">Start Date:</label>
+              <input
+                id="start-date"
+                type="datetime-local"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+            </div>
+            <div className="datetime-filter-group">
+              <label htmlFor="end-date">End Date:</label>
+              <input
+                id="end-date"
+                type="datetime-local"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </div>
+            <div className="datetime-filter-buttons">
+              <button
+                type="button"
+                className="datetime-apply-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  console.log('Datetime filter applied:', { startDate, endDate });
+                  setIsDatetimePickerOpen(false);
+                }}
+              >
+                Apply
+              </button>
+              <button
+                type="button"
+                className="datetime-clear-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setStartDate('');
+                  setEndDate('');
+                }}
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
