@@ -114,3 +114,43 @@
 .stac-zoom-btn:hover {
   background-color: #4bcfa8;
 }
+
+.temporal-extent-display {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  text-align: left;
+}
+
+.temporal-extent-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 6px;
+}
+
+.temporal-extent-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.temporal-extent-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.65rem;
+  color: #666;
+}
+
+.temporal-extent-key {
+  font-weight: 600;
+  color: #333;
+  margin-right: 8px;
+}
+
+.temporal-extent-value {
+  color: #555;
+  word-break: break-word;
+}

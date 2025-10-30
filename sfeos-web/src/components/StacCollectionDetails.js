@@ -5,6 +5,7 @@ import './QueryItems.css';
 function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap, stacApiUrl }) {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [isBoundingBoxVisible, setIsBoundingBoxVisible] = useState(false);
+  const [isTemporalExtentVisible, setIsTemporalExtentVisible] = useState(false);
   const [isQueryItemsVisible, setIsQueryItemsVisible] = useState(false);
   const [queryItems, setQueryItems] = useState([]);
   const [itemLimit, setItemLimit] = useState(10);
@@ -296,6 +297,12 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap, sta
   const bbox = collection.extent?.spatial?.bbox?.[0];
   const hasValidBbox = bbox && bbox.length === 4;
 
+  // Extract temporal extent
+  const temporalExtent = collection.extent?.temporal?.interval?.[0];
+  const hasValidTemporalExtent = temporalExtent && temporalExtent.length === 2;
+  const startTime = temporalExtent?.[0];
+  const endTime = temporalExtent?.[1];
+
   const handleZoomToBbox = () => {
     if (hasValidBbox && onZoomToBbox) {
       onZoomToBbox(bbox);
@@ -307,6 +314,9 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap, sta
     if (isBoundingBoxVisible) {
       setIsBoundingBoxVisible(false);
     }
+    if (isTemporalExtentVisible) {
+      setIsTemporalExtentVisible(false);
+    }
     if (isQueryItemsVisible) {
       setIsQueryItemsVisible(false);
     }
@@ -317,10 +327,14 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap, sta
     if (isDescriptionExpanded) {
       setIsDescriptionExpanded(false);
     }
+    if (isTemporalExtentVisible) {
+      setIsTemporalExtentVisible(false);
+    }
     if (isQueryItemsVisible) {
       setIsQueryItemsVisible(false);
     }
   };
+
 
   const handleQueryItemsClick = () => {
     const newIsExpanded = !isQueryItemsVisible;
@@ -471,6 +485,22 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap, sta
 
   return (
     <>
+      {hasValidTemporalExtent && (
+        <div className="temporal-extent-display">
+          <div className="temporal-extent-label">Temporal Range</div>
+          <div className="temporal-extent-content">
+            <div className="temporal-extent-item">
+              <span className="temporal-extent-key">Start:</span>
+              <span className="temporal-extent-value">{new Date(startTime).toLocaleString()}</span>
+            </div>
+            <div className="temporal-extent-item">
+              <span className="temporal-extent-key">End:</span>
+              <span className="temporal-extent-value">{new Date(endTime).toLocaleString()}</span>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <div className="description" onClick={handleDescriptionClick}>
         <button 
           className="stac-expand-btn"
@@ -513,6 +543,7 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap, sta
           </div>
         )}
       </div>
+
       
       <div className="query-items">
         <button 
