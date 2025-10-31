@@ -17,9 +17,11 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap, sta
   const [isDatetimePickerOpen, setIsDatetimePickerOpen] = useState(false);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [appliedDatetimeFilter, setAppliedDatetimeFilter] = useState('');
   const prevCollectionId = useRef(null);
   const stacApiUrlRef = useRef(stacApiUrl);
   const itemLimitRef = useRef(itemLimit);
+  const appliedDatetimeFilterRef = useRef('');
 
   useEffect(() => {
     stacApiUrlRef.current = stacApiUrl;
@@ -28,6 +30,10 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap, sta
   useEffect(() => {
     itemLimitRef.current = itemLimit;
   }, [itemLimit]);
+
+  useEffect(() => {
+    appliedDatetimeFilterRef.current = appliedDatetimeFilter;
+  }, [appliedDatetimeFilter]);
 
   // Detect collection changes and reset state
   useEffect(() => {
@@ -53,7 +59,8 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap, sta
         try {
           const baseUrl = stacApiUrlRef.current || process.env.REACT_APP_STAC_API_BASE_URL || 'http://localhost:8080';
           const currentLimit = itemLimitRef.current;
-          const url = `${baseUrl}/collections/${collection.id}/items?limit=${currentLimit}`;
+          const datetimeFilter = appliedDatetimeFilterRef.current;
+          const url = buildItemsUrl(baseUrl, collection.id, currentLimit, datetimeFilter);
           console.log(`Fetching items from: ${url}`);
           
           const response = await fetch(url);
@@ -291,6 +298,71 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap, sta
     window.addEventListener('showItemsOnMap', handler);
     return () => window.removeEventListener('showItemsOnMap', handler);
   }, []);
+
+  // Helper function to build API URL with datetime filter
+  const buildItemsUrl = (baseUrl, collectionId, limit, datetimeFilter) => {
+    let url = `${baseUrl}/collections/${collectionId}/items?limit=${limit}`;
+    if (datetimeFilter) {
+      url += `&datetime=${encodeURIComponent(datetimeFilter)}`;
+    }
+    return url;
+  };
+
+  // Helper function to process items from API response
+  const processItems = (features) => {
+    return features.map(item => {
+      let thumbnailUrl = null;
+      let thumbnailType = null;
+      try {
+        const assets = item.assets || {};
+        const assetsArr = Object.values(assets);
+        if (assets.thumbnail && assets.thumbnail.href) {
+          thumbnailUrl = assets.thumbnail.href;
+          thumbnailType = assets.thumbnail.type || null;
+        }
+        if (!thumbnailUrl) {
+          const thumbAssetWeb = assetsArr.find(a => {
+            const roles = Array.isArray(a.roles) ? a.roles : [];
+            const type = (a.type || '').toLowerCase();
+            return roles.includes('thumbnail') && (type.startsWith('image/jpeg') || type.startsWith('image/png'));
+          });
+          if (thumbAssetWeb) {
+            thumbnailUrl = thumbAssetWeb.href;
+            thumbnailType = thumbAssetWeb.type || null;
+          }
+        }
+        if (!thumbnailUrl) {
+          const thumbAny = assetsArr.find(a => {
+            const roles = Array.isArray(a.roles) ? a.roles : [];
+            return roles.includes('thumbnail') && a.href;
+          });
+          if (thumbAny) {
+            thumbnailUrl = thumbAny.href;
+            thumbnailType = thumbAny.type || null;
+          }
+        }
+        if (!thumbnailUrl && Array.isArray(item.links)) {
+          const link = item.links.find(l => l.rel === 'thumbnail' || l.rel === 'preview');
+          if (link && link.href) {
+            thumbnailUrl = link.href;
+            thumbnailType = link.type || null;
+          }
+        }
+      } catch (e) {
+        console.warn('Error extracting thumbnail:', e);
+      }
+      return {
+        id: item.id,
+        title: item.properties?.title || item.id,
+        geometry: item.geometry || null,
+        bbox: item.bbox || null,
+        thumbnailUrl,
+        thumbnailType,
+        datetime: item.properties?.datetime || item.properties?.start_datetime || null,
+        assetsCount: Object.keys(item.assets || {}).length
+      };
+    });
+  };
 
   if (!collection) return null;
 
@@ -758,8 +830,76 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap, sta
                 className="datetime-apply-btn"
                 onClick={(e) => {
                   e.stopPropagation();
-                  console.log('Datetime filter applied:', { startDate, endDate });
+                  // Build datetime filter string in STAC format: start/end
+                  // Convert datetime-local format to ISO 8601 with Z suffix
+                  const formatDatetime = (dt) => {
+                    if (!dt) return null;
+                    // datetime-local format: "2025-01-15T10:30" -> ISO 8601: "2025-01-15T10:30:00Z"
+                    return dt.includes('T') ? `${dt}:00Z` : `${dt}T00:00:00Z`;
+                  };
+                  
+                  let datetimeFilter = '';
+                  const formattedStart = formatDatetime(startDate);
+                  const formattedEnd = formatDatetime(endDate);
+                  
+                  if (formattedStart && formattedEnd) {
+                    datetimeFilter = `${formattedStart}/${formattedEnd}`;
+                  } else if (formattedStart) {
+                    datetimeFilter = `${formattedStart}/..`;
+                  } else if (formattedEnd) {
+                    datetimeFilter = `../${formattedEnd}`;
+                  }
+                  
+                  console.log('Datetime filter applied:', { startDate, endDate, formattedStart, formattedEnd, datetimeFilter });
+                  setAppliedDatetimeFilter(datetimeFilter);
                   setIsDatetimePickerOpen(false);
+                  
+                  // Trigger refetch with the new datetime filter
+                  if (collection && collection.id) {
+                    const baseUrl = stacApiUrlRef.current || process.env.REACT_APP_STAC_API_BASE_URL || 'http://localhost:8080';
+                    const url = buildItemsUrl(baseUrl, collection.id, itemLimitRef.current, datetimeFilter);
+                    console.log('Fetching items with datetime filter from:', url);
+                    
+                    fetch(url)
+                      .then(response => {
+                        if (response.ok) {
+                          return response.json();
+                        } else {
+                          return response.text().then(text => {
+                            throw new Error(`Failed to fetch: ${response.status} - ${text}`);
+                          });
+                        }
+                      })
+                      .then(data => {
+                        console.log('Received filtered items data:', data);
+                        setNumberReturned(data.numberReturned || data.features?.length || 0);
+                        setNumberMatched(data.numberMatched || data.features?.length || 0);
+                        
+                        if (data.features && data.features.length > 0) {
+                          const items = processItems(data.features);
+                          console.log('Setting filtered query items:', items);
+                          setQueryItems(items);
+                          setSelectedItemId(null);
+                          
+                          // Show filtered items on map
+                          if (onShowItemsOnMap) {
+                            console.log('Showing filtered items on map');
+                            onShowItemsOnMap(items);
+                          }
+                        } else {
+                          console.log('No features found in filtered response');
+                          setQueryItems([]);
+                          // Clear map when no items match
+                          if (onShowItemsOnMap) {
+                            onShowItemsOnMap([]);
+                          }
+                        }
+                      })
+                      .catch(error => {
+                        console.error('Error fetching filtered items:', error);
+                        setQueryItems([]);
+                      });
+                  }
                 }}
               >
                 Apply
@@ -771,6 +911,54 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap, sta
                   e.stopPropagation();
                   setStartDate('');
                   setEndDate('');
+                  setAppliedDatetimeFilter('');
+                  
+                  // Trigger refetch without datetime filter
+                  if (collection && collection.id) {
+                    const baseUrl = stacApiUrlRef.current || process.env.REACT_APP_STAC_API_BASE_URL || 'http://localhost:8080';
+                    const url = buildItemsUrl(baseUrl, collection.id, itemLimitRef.current, '');
+                    console.log('Fetching items without datetime filter from:', url);
+                    
+                    fetch(url)
+                      .then(response => {
+                        if (response.ok) {
+                          return response.json();
+                        } else {
+                          return response.text().then(text => {
+                            throw new Error(`Failed to fetch: ${response.status} - ${text}`);
+                          });
+                        }
+                      })
+                      .then(data => {
+                        console.log('Received unfiltered items data:', data);
+                        setNumberReturned(data.numberReturned || data.features?.length || 0);
+                        setNumberMatched(data.numberMatched || data.features?.length || 0);
+                        
+                        if (data.features && data.features.length > 0) {
+                          const items = processItems(data.features);
+                          console.log('Setting unfiltered query items:', items);
+                          setQueryItems(items);
+                          setSelectedItemId(null);
+                          
+                          // Show unfiltered items on map
+                          if (onShowItemsOnMap) {
+                            console.log('Showing unfiltered items on map');
+                            onShowItemsOnMap(items);
+                          }
+                        } else {
+                          console.log('No features found in unfiltered response');
+                          setQueryItems([]);
+                          // Clear map when no items match
+                          if (onShowItemsOnMap) {
+                            onShowItemsOnMap([]);
+                          }
+                        }
+                      })
+                      .catch(error => {
+                        console.error('Error fetching unfiltered items:', error);
+                        setQueryItems([]);
+                      });
+                  }
                 }}
               >
                 Clear
