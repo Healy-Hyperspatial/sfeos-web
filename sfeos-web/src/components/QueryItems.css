@@ -213,6 +213,26 @@
   background: rgba(0,0,0,0.08);
 }
 
+.datetime-btn.datetime-inactive {
+  background: rgba(255, 255, 255, 0.6);
+  border-color: rgba(0, 0, 0, 0.2);
+}
+
+.datetime-btn.datetime-inactive:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.datetime-btn.datetime-active {
+  background: rgba(76, 175, 80, 0.3);
+  border-color: #4caf50;
+  color: #2e7d32;
+  font-weight: 600;
+}
+
+.datetime-btn.datetime-active:hover {
+  background: rgba(76, 175, 80, 0.4);
+}
+
 .datetime-filter-box {
   position: absolute;
   top: 185px;

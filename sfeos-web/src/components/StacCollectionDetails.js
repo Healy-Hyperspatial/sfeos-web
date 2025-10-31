@@ -732,9 +732,9 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap, sta
               </button>
               <button
                 type="button"
-                className="datetime-btn"
-                title="Filter by datetime"
-                aria-label="Filter by datetime"
+                className={`datetime-btn ${appliedDatetimeFilter ? 'datetime-active' : 'datetime-inactive'}`}
+                title={appliedDatetimeFilter ? `Filter active: ${appliedDatetimeFilter}` : "Filter by datetime"}
+                aria-label={appliedDatetimeFilter ? `Filter active: ${appliedDatetimeFilter}` : "Filter by datetime"}
                 onClick={(e) => {
                   e.stopPropagation();
                   setIsDatetimePickerOpen(!isDatetimePickerOpen);
