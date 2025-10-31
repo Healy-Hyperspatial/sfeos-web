@@ -845,9 +845,14 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap, sta
                   if (formattedStart && formattedEnd) {
                     datetimeFilter = `${formattedStart}/${formattedEnd}`;
                   } else if (formattedStart) {
-                    datetimeFilter = `${formattedStart}/..`;
+                    // Use a far future date instead of .. for open-ended range
+                    datetimeFilter = `${formattedStart}/2099-12-31T23:59:59Z`;
                   } else if (formattedEnd) {
-                    datetimeFilter = `../${formattedEnd}`;
+                    // Use a far past date instead of .. for open-ended range
+                    datetimeFilter = `1900-01-01T00:00:00Z/${formattedEnd}`;
+                  } else {
+                    // If neither start nor end date is selected, don't apply any filter
+                    datetimeFilter = '';
                   }
                   
                   console.log('Datetime filter applied:', { startDate, endDate, formattedStart, formattedEnd, datetimeFilter });
