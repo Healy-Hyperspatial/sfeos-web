@@ -187,8 +187,9 @@ function StacCollectionDetails({ collection, onZoomToBbox, onShowItemsOnMap, sta
       
       // Update query items list when bbox search returns results
       if (Array.isArray(items)) {
-        setQueryItems(items);
-        console.log('Query items updated from showItemsOnMap event:', items.length, 'items');
+        const processedItems = processItems(items);
+        setQueryItems(processedItems);
+        console.log('Query items updated from showItemsOnMap event:', processedItems.length, 'items');
       }
     };
     window.addEventListener('showItemsOnMap', handler);
